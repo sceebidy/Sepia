@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('folders', function (Blueprint $table) {
+            $table->id();
+            $table->string('nama');
+            $table->text('deskripsi')->nullable();
+            $table->string('emoji')->default('📁');
+            $table->string('warna_stripe')->default('#1a5c2e');
+            $table->enum('status', [
+                'aktif',
+                'penyidikan',
+                'penuntutan',
+                'inkracht',
+                'baru',
+            ])->default('baru');
+            $table->string('dibuat_oleh')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('folders');
+    }
+};
