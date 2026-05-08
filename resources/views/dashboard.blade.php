@@ -8,8 +8,8 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --green:        #0d4f2e;
-  --green-2:      #1a6b3f;
+  --green:        #1a5c2e;
+  --green-2:      #2e7d4a;
   --green-3:      #2e8a55;
   --green-light:  #edfaf3;
   --green-mid:    #c6edd9;

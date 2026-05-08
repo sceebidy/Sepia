@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Folder extends Model
 {
+    use HasFactory;
+
     protected $table = 'folders';
 
     protected $fillable = [
@@ -17,28 +20,21 @@ class Folder extends Model
         'dibuat_oleh',
     ];
 
-    // ── Relasi ke items
+    // ── Relasi ──────────────────────────────
     public function items()
     {
-        return $this->hasMany(FolderItem::class, 'folder_id');
+        return $this->hasMany(FolderItem::class);
     }
 
-    // ── Hitung jumlah item
-    public function jumlahItem()
+    // ── Helper: warna badge per status ──────
+    public function statusColor(): array
     {
-        return $this->items()->count();
-    }
-
-    // ── Warna badge status
-    public function statusColor()
-    {
-        return match($this->status) {
-            'aktif'       => ['bg' => '#f0f7f2', 'text' => '#1a5c2e', 'border' => '#b6d9c3'],
-            'penyidikan'  => ['bg' => '#fffbeb', 'text' => '#92400e', 'border' => '#fde68a'],
-            'penuntutan'  => ['bg' => '#fce7f3', 'text' => '#9d174d', 'border' => '#f9a8d4'],
-            'inkracht'    => ['bg' => '#eff6ff', 'text' => '#1e40af', 'border' => '#bfdbfe'],
-            'baru'        => ['bg' => '#f3f4f6', 'text' => '#6b7280', 'border' => '#e5e7eb'],
-            default       => ['bg' => '#f3f4f6', 'text' => '#6b7280', 'border' => '#e5e7eb'],
+        return match ($this->status) {
+            'aktif'      => ['bg' => '#f0fdf4', 'text' => '#15803d', 'border' => '#bbf7d0'],
+            'penyidikan' => ['bg' => '#fffbeb', 'text' => '#b45309', 'border' => '#fde68a'],
+            'penuntutan' => ['bg' => '#eff6ff', 'text' => '#1d4ed8', 'border' => '#bfdbfe'],
+            'inkracht'   => ['bg' => '#f3f4f6', 'text' => '#4b5563', 'border' => '#d1d5db'],
+            default      => ['bg' => '#f0fdf4', 'text' => '#0f766e', 'border' => '#99f6e4'], // baru
         };
     }
 }
