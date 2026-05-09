@@ -17,6 +17,13 @@ class Issue extends Model
         'status',
         'wilayah',
         'sumber',
+        // ── Tambahan untuk integrasi AI ──
+        'ai_usage_id',
+        'dari_ai',
+    ];
+
+    protected $casts = [
+        'dari_ai' => 'boolean',
     ];
 
     // ── Scope: filter kategori
@@ -37,9 +44,21 @@ class Issue extends Model
         return $query->where('status', 'aktif');
     }
 
+    // ── Scope: hanya dari AI
+    public function scopeDariAi($query)
+    {
+        return $query->where('dari_ai', true);
+    }
+
     // ── Relasi ke analisis
     public function analisis()
     {
         return $this->hasMany(Analisis::class, 'issue_id');
+    }
+
+    // ── Relasi ke ai_usage (opsional, nullable)
+    public function aiUsage()
+    {
+        return $this->belongsTo(AiUsage::class, 'ai_usage_id');
     }
 }

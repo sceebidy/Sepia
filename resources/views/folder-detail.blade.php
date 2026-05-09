@@ -134,6 +134,65 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg-tertiary); color
 .btn-danger { padding: 8px 20px; border: none; border-radius: 8px; background: var(--danger); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; }
 .btn-danger:hover { background: #b91c1c; }
 
+/* ══ TAMBAHKAN CSS INI DI BAGIAN <style> folder-detail.blade.php ══ */
+
+/* ── SECTION CARDS (Analisis, Distribusi, Laporan) ── */
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.section-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.section-card:hover {
+  border-color: var(--green-border);
+  box-shadow: 0 6px 24px rgba(26,92,46,0.09);
+  transform: translateY(-2px);
+}
+.section-card.blue:hover  { border-color: #bfdbfe; box-shadow: 0 6px 24px rgba(30,111,163,0.09); }
+.section-card.amber:hover { border-color: #fde68a; box-shadow: 0 6px 24px rgba(217,119,6,0.09); }
+.section-card.teal:hover  { border-color: #99f6e4; box-shadow: 0 6px 24px rgba(6,95,70,0.09); }
+
+.section-card-stripe { height: 4px; }
+.section-card-body { padding: 16px 20px 14px; }
+.section-card-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.section-arrow {
+  font-size: 16px; color: var(--text-muted); margin-top: 6px;
+  opacity: 0; transition: opacity 0.15s, transform 0.15s;
+}
+.section-card:hover .section-arrow { opacity: 1; transform: translateX(3px); }
+
+.section-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.section-card-desc { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
+.section-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; margin-top: 12px; border-top: 1px solid var(--border);
+}
+.section-count { font-size: 11px; color: var(--text-muted); }
+.section-count strong { color: var(--text); font-weight: 600; }
+.section-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+}
+
 /* ── TIPE SWITCHER ── */
 .tipe-row { display: flex; gap: 8px; }
 .tipe-btn { flex: 1; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; text-align: center; transition: all 0.12s; color: var(--text-muted); }
@@ -201,10 +260,23 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg-tertiary); color
       <div class="page-title">{{ $folder->emoji }} {{ $folder->nama }}</div>
     </div>
     <div class="topbar-right">
-      <button class="tb-btn primary" onclick="openModal('modal-tambah')">+ Tambah Sumber</button>
-      <button class="tb-btn danger" onclick="openDeleteFolder()">🗑 Hapus Folder</button>
-    </div>
-  </div>
+  <button class="tb-btn primary" onclick="openModal('modal-tambah')">+ Tambah Sumber</button>
+  
+  <a href="{{ route('analisis.create', $folder) }}" 
+     class="tb-btn" style="background:#fefce8;border-color:#fde68a;color:#92400e">
+    🔍 Input Analisis
+  </a>
+  
+  @if($analisis)
+  <a href="{{ route('analisis.show', [$folder, $analisis]) }}" 
+     class="tb-btn" style="background:#f0f7f2;border-color:#b6d9c3;color:#1a5c2e">
+    📊 Lihat Analisis
+  </a>
+  @endif
+  
+  <button class="tb-btn danger" onclick="openDeleteFolder()">🗑 Hapus Folder</button>
+</div>
+</div>
 
   {{-- CONTENT --}}
   <div class="content">
@@ -241,6 +313,85 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg-tertiary); color
         </div>
       </div>
     </div>
+
+{{-- ══════════════════════════════════════════════════════════════════ --}}
+{{--  SISIPKAN BLOK INI DI folder-detail.blade.php                     --}}
+{{--  POSISI: Setelah </div> dari .folder-header-card                  --}}
+{{--          DAN SEBELUM <div> dari "Daftar Sumber Data"              --}}
+{{-- ══════════════════════════════════════════════════════════════════ --}}
+
+{{-- ── 3 SECTION CARDS ── --}}
+<div>
+  <div class="section-toolbar" style="margin-bottom:12px">
+    <div class="section-title">Aksi Folder</div>
+  </div>
+
+  <div class="sections-grid">
+
+    {{-- ① ANALISIS --}}
+    <a class="section-card blue" href="{{ $analisis ? route('analisis.show', [$folder, $analisis]) : route('analisis.create', $folder) }}">
+      <div class="section-card-stripe" style="background:#1e6fa3"></div>
+      <div class="section-card-body">
+        <div class="section-card-top">
+          <div class="section-icon" style="background:#eff6ff">🔮</div>
+          <div class="section-arrow">→</div>
+        </div>
+        <div class="section-card-title">Analisis Prediksi</div>
+        <div class="section-card-desc">
+          Input data analisis kasus — SWOT, peta aktor, kronologi, penilaian risiko, dan rekomendasi tindak lanjut.
+        </div>
+        <div class="section-card-footer">
+          @if($analisis)
+            <div class="section-count">Risiko <strong>{{ $analisis->tingkat_risiko }}/10</strong> · {{ $analisis->aktor->count() }} aktor</div>
+            <span class="section-pill" style="background:#eff6ff;color:#1e6fa3;border:1px solid #bfdbfe">Lihat Hasil →</span>
+          @else
+            <div class="section-count">Belum ada analisis</div>
+            <span class="section-pill" style="background:#eff6ff;color:#1e6fa3;border:1px solid #bfdbfe">Mulai →</span>
+          @endif
+        </div>
+      </div>
+    </a>
+
+    {{-- ② DISTRIBUSI --}}
+    <a class="section-card amber" href="#">
+      <div class="section-card-stripe" style="background:#d97706"></div>
+      <div class="section-card-body">
+        <div class="section-card-top">
+          <div class="section-icon" style="background:#fffbeb">📤</div>
+          <div class="section-arrow">→</div>
+        </div>
+        <div class="section-card-title">Distribusi</div>
+        <div class="section-card-desc">
+          Kelola dan kirim laporan serta nota dinas ke instansi terkait — Kejagung, KPK, dan lembaga pengawas lainnya.
+        </div>
+        <div class="section-card-footer">
+          <div class="section-count">Belum ada distribusi</div>
+          <span class="section-pill" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a">Buka →</span>
+        </div>
+      </div>
+    </a>
+
+    {{-- ③ LAPORAN --}}
+    <a class="section-card teal" href="#">
+      <div class="section-card-stripe" style="background:#065f46"></div>
+      <div class="section-card-body">
+        <div class="section-card-top">
+          <div class="section-icon" style="background:#ecfdf5">📋</div>
+          <div class="section-arrow">→</div>
+        </div>
+        <div class="section-card-title">Laporan</div>
+        <div class="section-card-desc">
+          Buat dan ekspor laporan analisis kasus secara lengkap — ringkasan eksekutif, daftar aktor, dan rekomendasi.
+        </div>
+        <div class="section-card-footer">
+          <div class="section-count">Belum ada laporan</div>
+          <span class="section-pill" style="background:#ecfdf5;color:#065f46;border:1px solid #99f6e4">Buka →</span>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>
 
     {{-- ── DAFTAR ITEM ── --}}
     <div>
