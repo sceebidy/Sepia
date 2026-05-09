@@ -33,7 +33,8 @@ Route::get('/n8n/status/{aiUsage}',[N8nController::class, 'status'])->name('n8n.
 
 // ── Analisis Kasus
 Route::prefix('datapool/{folder}/analisis')->name('analisis.')->group(function () {
-    Route::get('/create',     [AnalisisController::class, 'create'])->name('create');
     Route::post('/',          [AnalisisController::class, 'store'])->name('store');
     Route::get('/{analisis}', [AnalisisController::class, 'show'])->name('show');
 });
+
+Route::post('/analisis/callback', [AnalisisController::class, 'callback'])->name('analisis.callback');

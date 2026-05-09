@@ -11,131 +11,202 @@ use App\Models\RekomendasiKasus;
 use App\Models\ConfidenceKasus;
 use App\Models\RiskAssessment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class AnalisisController extends Controller
 {
-    // ── Form input analisis (GET)
-    public function create(Folder $folder)
-    {
-        // cek apakah sudah ada analisis untuk folder ini
-        $existing = AnalisisKasus::where('folder_id', $folder->id)->first();
-        return view('analisis-form', compact('folder', 'existing'));
-    }
-
-    // ── Simpan analisis baru (POST)
+    // ── Trigger analisis ke n8n (POST) - Opsi B: Loading + Auto Redirect
     public function store(Request $request, Folder $folder)
     {
-        $request->validate([
-            'judul'           => 'required|string|max:255',
-            'tingkat_risiko'  => 'required|numeric|min:0|max:10',
-            'prediksi_vonis'  => 'nullable|string|max:100',
-            'jumlah_sumber'   => 'required|integer|min:0',
-        ]);
+        // Validasi folder punya items
+        $items = $folder->items()->get();
+        if ($items->isEmpty()) {
+            return response()->json(['error' => 'Folder tidak ada sumber data'], 400);
+        }
 
-        // ── Hapus analisis lama kalau ada
-        AnalisisKasus::where('folder_id', $folder->id)->delete();
+        try {
+            // Buat record analisis kosong dulu (sebagai placeholder)
+            $analisis = AnalisisKasus::updateOrCreate(
+                ['folder_id' => $folder->id],
+                [
+                    'judul'            => $folder->nama,
+                    'tanggal_analisis' => now(),
+                    'tingkat_risiko'   => 0,
+                    'jumlah_sumber'    => $items->count(),
+                    'model_versi'      => 'SEPIA v1.0 (AI)',
+                ]
+            );
 
-        // ── Buat analisis baru
-        $analisis = AnalisisKasus::create([
-            'folder_id'        => $folder->id,
-            'judul'            => $request->judul,
-            'tanggal_analisis' => now(),
-            'tingkat_risiko'   => $request->tingkat_risiko,
-            'prediksi_vonis'   => $request->prediksi_vonis,
-            'jumlah_sumber'    => $request->jumlah_sumber,
-            'model_versi'      => 'SEPIA v1.0',
-        ]);
+            // Kirim ke n8n webhook
+            $this->sendToN8n($folder, $items, $analisis);
 
-        // ── SWOT Items
-        $swotTipes = ['S', 'W', 'O', 'T'];
-        foreach ($swotTipes as $tipe) {
-            $items = $request->input('swot_' . strtolower($tipe), []);
-            foreach (array_filter($items) as $i => $isi) {
-                SwotItem::create([
-                    'analisis_id' => $analisis->id,
-                    'tipe'        => $tipe,
-                    'isi'         => $isi,
-                    'urutan'      => $i,
-                ]);
+            return response()->json([
+                'success' => true,
+                'analisis_id' => $analisis->id,
+                'folder_id' => $folder->id,
+                'message' => 'Analisis dimulai, tunggu hasil...'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ── Kirim data ke n8n webhook
+    private function sendToN8n($folder, $items, $analisis)
+    {
+        $n8nWebhook = env('N8N_WEBHOOK_URL');
+        
+        if (!$n8nWebhook) {
+            throw new \Exception('N8N_WEBHOOK_URL tidak dikonfigurasi di .env');
+        }
+
+        // Siapkan payload untuk n8n
+        $payload = [
+            'folder_id'    => $folder->id,
+            'analisis_id'  => $analisis->id,
+            'folder_nama'  => $folder->nama,
+            'items'        => $items->map(function ($item) {
+                return [
+                    'id'         => $item->id,
+                    'tipe'       => $item->tipe,
+                    'judul'      => $item->judul,
+                    'konten'     => $item->konten,
+                    'file_path'  => $item->file_path,
+                    'file_nama'  => $item->file_nama,
+                ];
+            })->toArray(),
+            'callback_url' => route('analisis.callback'),
+        ];
+
+        try {
+            $response = Http::timeout(10)->post($n8nWebhook, $payload);
+            
+            if (!$response->successful()) {
+                throw new \Exception('N8n webhook error: ' . $response->body());
             }
+        } catch (\Exception $e) {
+            throw new \Exception('Gagal terhubung ke n8n: ' . $e->getMessage());
         }
+    }
 
-        // ── Aktor
-        $aktorNama   = $request->input('aktor_nama', []);
-        $aktorInisial= $request->input('aktor_inisial', []);
-        $aktorPeran  = $request->input('aktor_peran', []);
-        $aktorStatus = $request->input('aktor_status', []);
-        $aktorWarna  = $request->input('aktor_warna', []);
-        foreach ($aktorNama as $i => $nama) {
-            if (!$nama) continue;
-            AktorKasus::create([
-                'analisis_id'  => $analisis->id,
-                'nama'         => $nama,
-                'inisial'      => $aktorInisial[$i] ?? '?',
-                'peran'        => $aktorPeran[$i] ?? '-',
-                'status'       => $aktorStatus[$i] ?? 'saksi',
-                'warna_avatar' => $aktorWarna[$i] ?? '#1a5c2e',
+    // ── Callback dari n8n - Terima hasil analisis
+    public function callback(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'analisis_id'       => 'required|integer',
+                'swot'              => 'required|array',
+                'aktor'             => 'required|array',
+                'timeline'          => 'required|array',
+                'rekomendasi'       => 'required|array',
+                'risk'              => 'required|array',
+                'confidence'        => 'required|array',
+                'tingkat_risiko'    => 'required|numeric',
+                'prediksi_vonis'    => 'nullable|string',
             ]);
-        }
 
-        // ── Timeline
-        $tlTanggal    = $request->input('tl_tanggal', []);
-        $tlKeterangan = $request->input('tl_keterangan', []);
-        $tlWarna      = $request->input('tl_warna', []);
-        foreach ($tlTanggal as $i => $tanggal) {
-            if (!$tanggal) continue;
-            TimelineKasus::create([
+            $analisis = AnalisisKasus::findOrFail($data['analisis_id']);
+
+            // Hapus data lama kalau ada (untuk update)
+            SwotItem::where('analisis_id', $analisis->id)->delete();
+            AktorKasus::where('analisis_id', $analisis->id)->delete();
+            TimelineKasus::where('analisis_id', $analisis->id)->delete();
+            RekomendasiKasus::where('analisis_id', $analisis->id)->delete();
+            RiskAssessment::where('analisis_id', $analisis->id)->delete();
+            ConfidenceKasus::where('analisis_id', $analisis->id)->delete();
+
+            // Update header analisis
+            $analisis->update([
+                'tingkat_risiko' => $data['tingkat_risiko'],
+                'prediksi_vonis' => $data['prediksi_vonis'],
+            ]);
+
+            // ── Simpan SWOT
+            foreach ($data['swot'] as $tipe => $items) {
+                foreach ($items as $i => $isi) {
+                    if (trim($isi)) {
+                        SwotItem::create([
+                            'analisis_id' => $analisis->id,
+                            'tipe'        => $tipe,
+                            'isi'         => $isi,
+                            'urutan'      => $i,
+                        ]);
+                    }
+                }
+            }
+
+            // ── Simpan Aktor
+            foreach ($data['aktor'] as $i => $aktor) {
+                if (isset($aktor['nama']) && trim($aktor['nama'])) {
+                    AktorKasus::create([
+                        'analisis_id'  => $analisis->id,
+                        'nama'         => $aktor['nama'],
+                        'inisial'      => $aktor['inisial'] ?? '?',
+                        'peran'        => $aktor['peran'] ?? '-',
+                        'status'       => $aktor['status'] ?? 'saksi',
+                        'warna_avatar' => $aktor['warna_avatar'] ?? '#1a5c2e',
+                    ]);
+                }
+            }
+
+            // ── Simpan Timeline
+            foreach ($data['timeline'] as $i => $tl) {
+                if (isset($tl['tanggal']) && trim($tl['tanggal'])) {
+                    TimelineKasus::create([
+                        'analisis_id' => $analisis->id,
+                        'tanggal'     => $tl['tanggal'],
+                        'keterangan'  => $tl['keterangan'] ?? '-',
+                        'warna_dot'   => $tl['warna_dot'] ?? '#16a34a',
+                        'urutan'      => $i,
+                    ]);
+                }
+            }
+
+            // ── Simpan Rekomendasi
+            foreach ($data['rekomendasi'] as $i => $reko) {
+                if (isset($reko['judul']) && trim($reko['judul'])) {
+                    RekomendasiKasus::create([
+                        'analisis_id' => $analisis->id,
+                        'judul'       => $reko['judul'],
+                        'deskripsi'   => $reko['deskripsi'] ?? '-',
+                        'prioritas'   => $reko['prioritas'] ?? 'sedang',
+                        'urutan'      => $i,
+                    ]);
+                }
+            }
+
+            // ── Simpan Risk Assessment
+            foreach ($data['risk'] as $i => $risk) {
+                if (isset($risk['label']) && trim($risk['label'])) {
+                    RiskAssessment::create([
+                        'analisis_id' => $analisis->id,
+                        'label'       => $risk['label'],
+                        'nilai'       => $risk['nilai'] ?? 0,
+                        'warna'       => $risk['warna'] ?? '#dc2626',
+                        'keterangan'  => $risk['keterangan'] ?? null,
+                        'urutan'      => $i,
+                    ]);
+                }
+            }
+
+            // ── Simpan Confidence
+            ConfidenceKasus::create([
+                'analisis_id'        => $analisis->id,
+                'kelengkapan_data'   => $data['confidence']['kelengkapan_data'] ?? 0,
+                'konsistensi_sumber' => $data['confidence']['konsistensi_sumber'] ?? 0,
+                'kualitas_dokumen'   => $data['confidence']['kualitas_dokumen'] ?? 0,
+                'kedalaman_analisis' => $data['confidence']['kedalaman_analisis'] ?? 0,
+            ]);
+
+            return response()->json([
+                'success' => true,
                 'analisis_id' => $analisis->id,
-                'tanggal'     => $tanggal,
-                'keterangan'  => $tlKeterangan[$i] ?? '-',
-                'warna_dot'   => $tlWarna[$i] ?? '#16a34a',
-                'urutan'      => $i,
+                'message' => 'Analisis berhasil disimpan'
             ]);
+        } catch (\Exception $e) {
+            \Log::error('Callback error: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // ── Rekomendasi
-        $rekoJudul    = $request->input('reko_judul', []);
-        $rekoDeskripsi= $request->input('reko_deskripsi', []);
-        $rekoPrioritas= $request->input('reko_prioritas', []);
-        foreach ($rekoJudul as $i => $judul) {
-            if (!$judul) continue;
-            RekomendasiKasus::create([
-                'analisis_id' => $analisis->id,
-                'judul'       => $judul,
-                'deskripsi'   => $rekoDeskripsi[$i] ?? '-',
-                'prioritas'   => $rekoPrioritas[$i] ?? 'sedang',
-                'urutan'      => $i,
-            ]);
-        }
-
-        // ── Confidence
-        ConfidenceKasus::create([
-            'analisis_id'        => $analisis->id,
-            'kelengkapan_data'   => $request->input('conf_kelengkapan', 0),
-            'konsistensi_sumber' => $request->input('conf_konsistensi', 0),
-            'kualitas_dokumen'   => $request->input('conf_kualitas', 0),
-            'kedalaman_analisis' => $request->input('conf_kedalaman', 0),
-        ]);
-
-        // ── Risk Assessment
-        $riskLabel     = $request->input('risk_label', []);
-        $riskNilai     = $request->input('risk_nilai', []);
-        $riskWarna     = $request->input('risk_warna', []);
-        $riskKeterangan= $request->input('risk_keterangan', []);
-        foreach ($riskLabel as $i => $label) {
-            if (!$label) continue;
-            RiskAssessment::create([
-                'analisis_id' => $analisis->id,
-                'label'       => $label,
-                'nilai'       => $riskNilai[$i] ?? 0,
-                'warna'       => $riskWarna[$i] ?? '#dc2626',
-                'keterangan'  => $riskKeterangan[$i] ?? null,
-                'urutan'      => $i,
-            ]);
-        }
-
-        return redirect()->route('analisis.show', [$folder, $analisis])
-            ->with('success', 'Analisis berhasil disimpan.');
     }
 
     // ── Tampilkan hasil analisis (GET)

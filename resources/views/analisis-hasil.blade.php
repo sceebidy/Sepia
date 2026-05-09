@@ -216,7 +216,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
       <div>
         <div class="banner-title">{{ $analisis->judul }}</div>
         <div class="banner-meta">
-          <span>{{ $analisis->tanggal_analisis ? $analisis->tanggal_analisis->format('d M Y, H.i') . ' WIB' : '-' }}</span>
+          <span>{{ $analisis->tanggal_analisis ? \Carbon\Carbon::parse($analisis->tanggal_analisis)->format('d M Y, H.i') . ' WIB' : '-' }}</span>
           <span class="banner-dot"></span>
           <span>{{ $analisis->jumlah_sumber }} sumber · {{ $analisis->aktor->count() }} aktor</span>
           <span class="banner-dot"></span>
@@ -262,11 +262,11 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
             <div class="swot-letter">{{ $tipe }}</div>
             <div>
               <div class="swot-card-title">{{ $j }} — {{ $s }}</div>
-              <div class="swot-card-sub">{{ $swotGroups[$tipe]?->count() ?? 0 }} poin</div>
+              <div class="swot-card-sub">{{ isset($swotGroups[$tipe]) ? $swotGroups[$tipe]->count() : 0 }} poin</div>
             </div>
           </div>
           <div class="swot-items">
-            @forelse($swotGroups[$tipe] ?? [] as $item)
+            @forelse($swotGroups->get($tipe, collect()) as $item)
             <div class="swot-item"><div class="swot-item-dot"></div><span>{{ $item->isi }}</span></div>
             @empty
             <div class="empty-msg">Tidak ada poin.</div>
@@ -438,7 +438,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
 
   </div>
 
-  <a class="fab-edit" href="{{ route('analisis.create', $folder) }}">✏️ Edit Analisis</a>
+  <a class="fab-edit" href="{{ route('datapool.show', $folder) }}">← Kembali ke Folder</a>
 
 </div>
 </body>
