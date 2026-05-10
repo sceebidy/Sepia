@@ -15,5 +15,6 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         '/n8n/callback',
         '/n8n/test-callback',
+        '/analisis/callback',
     ];
 }

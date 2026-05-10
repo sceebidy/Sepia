@@ -75,7 +75,7 @@ class AnalisisController extends Controller
                     'file_nama'  => $item->file_nama,
                 ];
             })->toArray(),
-            'callback_url' => route('analisis.callback'),
+            'callback_url' => 'https://salsa-unnerving-enrich.ngrok-free.dev/analisis/callback',
         ];
 
         try {
@@ -212,6 +212,11 @@ class AnalisisController extends Controller
     // ── Tampilkan hasil analisis (GET)
     public function show(Folder $folder, AnalisisKasus $analisis)
     {
+    $analisis->load(['swotItems','aktor','timeline','rekomendasi','confidence','riskItems']);
+
+    if (request()->wantsJson()) {
+        return response()->json(['analisis' => $analisis]);
+    }
         $analisis->load([
             'swotItems',
             'aktor',

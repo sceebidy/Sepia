@@ -452,8 +452,7 @@ function startAnalysis(folderId) {
 }
 
 function pollAnalysisResult(folderId, analisisId, attempts) {
-  // Timeout 2 menit (120 detik)
-  if (attempts > 120) {
+  if (attempts > 60) {
     document.getElementById('modal-analisis-loading').style.display = 'none';
     alert('Analisis memakan waktu terlalu lama. Silakan coba lagi.');
     return;
@@ -463,17 +462,16 @@ function pollAnalysisResult(folderId, analisisId, attempts) {
     fetch('/datapool/' + folderId + '/analisis/' + analisisId, {
       headers: { 'Accept': 'application/json' }
     })
-    .then(res => {
-      if (res.ok) {
-        // Hasil sudah ada → redirect
+    .then(res => res.json())
+    .then(data => {
+      if (data.analisis && data.analisis.tingkat_risiko > 0) {
         window.location.href = '/datapool/' + folderId + '/analisis/' + analisisId;
       } else {
-        // Masih proses → polling lagi
         pollAnalysisResult(folderId, analisisId, attempts + 1);
       }
     })
     .catch(() => pollAnalysisResult(folderId, analisisId, attempts + 1));
-  }, 1000);
+  }, 2000);
 }
 </script>
 </body>
