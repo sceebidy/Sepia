@@ -39,7 +39,7 @@ class DistribusiController extends Controller
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer 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',
+                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
                 'Content-Type'  => 'application/json',
             ])->timeout(30)->post('https://api.groq.com/openai/v1/chat/completions', [
                 'model' => 'llama-3.1-8b-instant',
