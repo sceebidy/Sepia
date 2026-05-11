@@ -26,6 +26,10 @@ class Folder extends Model
         return $this->hasMany(FolderItem::class);
     }
 
+    public function analisis()
+{
+    return $this->hasMany(\App\Models\AnalisisKasus::class, 'folder_id');
+}
     // ── Helper: warna badge per status ──────
     public function statusColor(): array
     {

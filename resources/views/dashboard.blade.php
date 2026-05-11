@@ -765,7 +765,109 @@ body {
           </div>
         </div>
       </div>
+    </div>
+{{-- ══ RPI STATS ══ --}}
+    <div class="section-head">
+      <h2>Analisis RPI — Statistik Risiko</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#f0f9ff">📋</div>
+          <span class="stat-trend trend-neu">RPI</span>
+        </div>
+        <div class="stat-value">{{ $rpiStats['total'] }}</div>
+        <div class="stat-label">Total Analisis RPI</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-fill" data-w="100" style="background:#0369a1"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#fef2f2">🔴</div>
+          <span class="stat-trend trend-down">Tinggi</span>
+        </div>
+        <div class="stat-value" style="color:#be123c">{{ $rpiStats['risiko_tinggi'] }}</div>
+        <div class="stat-label">Risiko Tinggi (≥7)</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-fill" data-w="{{ $rpiStats['total'] > 0 ? round(($rpiStats['risiko_tinggi']/$rpiStats['total'])*100) : 0 }}" style="background:#be123c"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#fffbeb">🟡</div>
+          <span class="stat-trend trend-neu">Sedang</span>
+        </div>
+        <div class="stat-value" style="color:#b45309">{{ $rpiStats['risiko_sedang'] }}</div>
+        <div class="stat-label">Risiko Sedang (4–7)</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-fill" data-w="{{ $rpiStats['total'] > 0 ? round(($rpiStats['risiko_sedang']/$rpiStats['total'])*100) : 0 }}" style="background:#b45309"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#f0fdf4">🟢</div>
+          <span class="stat-trend trend-up">Rendah</span>
+        </div>
+        <div class="stat-value" style="color:#15803d">{{ $rpiStats['risiko_rendah'] }}</div>
+        <div class="stat-label">Risiko Rendah (&lt;4)</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-fill" data-w="{{ $rpiStats['total'] > 0 ? round(($rpiStats['risiko_rendah']/$rpiStats['total'])*100) : 0 }}" style="background:#15803d"></div>
+        </div>
+      </div>
+    </div>
 
+    {{-- ══ GRAFIK TREN ANALISIS RPI ══ --}}
+    <div class="section-head">
+      <h2>Tren Analisis RPI — 7 Hari Terakhir</h2>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 24px">
+      <canvas id="chart-rpi-trend" height="80"></canvas>
+    </div>
+
+    {{-- ══ RIWAYAT LAPORAN ══ --}}
+    <div class="section-head">
+      <h2>Riwayat Laporan RPI</h2>
+      <a href="{{ route('laporan.index') }}">Lihat semua →</a>
+    </div>
+
+    @if($riwayatLaporan->isEmpty())
+    <div style="background:#fff;border:1.5px dashed var(--border);border-radius:14px;padding:32px;text-align:center;color:var(--text-muted)">
+      <div style="font-size:32px;margin-bottom:10px">📋</div>
+      <div style="font-size:13px;font-weight:600">Belum ada laporan</div>
+      <div style="font-size:11.5px;margin-top:4px">Generate laporan dari halaman analisis folder RPI</div>
+    </div>
+    @else
+    <div style="display:flex;flex-direction:column;gap:8px">
+      @foreach($riwayatLaporan as $lap)
+      <a href="{{ route('laporan.show', $lap) }}" style="text-decoration:none">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all 0.13s" onmouseover="this.style.borderColor='#8fd4b1';this.style.background='#edfaf3'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff'">
+          <div style="width:40px;height:40px;border-radius:10px;background:#f0f9ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📄</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $lap->judul }}</div>
+            <div style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:10px">
+              <span>{{ $lap->nomor_laporan ?? 'LAP-'.str_pad($lap->id,4,'0',STR_PAD_LEFT).'/'.date('Y',strtotime($lap->created_at)) }}</span>
+              <span>·</span>
+              <span>{{ $lap->dibuat_oleh }}</span>
+              <span>·</span>
+              <span>{{ $lap->created_at->diffForHumans() }}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            @if($lap->tingkat_risiko >= 7)
+              <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fef2f2;color:#be123c;border:1px solid #fecdd3">● TINGGI</span>
+            @elseif($lap->tingkat_risiko >= 4)
+              <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fffbeb;color:#a16207;border:1px solid #fde68a">● SEDANG</span>
+            @else
+              <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">● RENDAH</span>
+            @endif
+            <span style="font-size:11px;color:#94a3b8">→</span>
+          </div>
+        </div>
+      </a>
+      @endforeach
+    </div>
+    @endif
     </div>
   </div>{{-- end .content --}}
 </div>{{-- end .main --}}
@@ -866,6 +968,30 @@ new Chart(document.getElementById('donut-hankam'), donutConfig(
   getSubVals('hankam', ['siber','terorisme','perbatasan']),
   ['#be123c','#f43f5e','#fecdd3']
 ));
+// ── Grafik tren analisis RPI
+new Chart(document.getElementById('chart-rpi-trend'), {
+  type: 'bar',
+  data: {
+    labels: @json(collect(range(6,0,-1))->map(fn($i) => \Carbon\Carbon::now()->subDays($i)->format('d M'))),
+    datasets: [{
+      label: 'Analisis RPI',
+      data: @json($analisisTrend),
+      backgroundColor: '#1a5c2e22',
+      borderColor: '#1a5c2e',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+      x: { grid: { display: false } }
+    }
+  }
+});
 </script>
 
 </body>

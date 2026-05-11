@@ -56,14 +56,15 @@ class FolderController extends Controller
     // ──────────────────────────────────────────────
     //  GET /datapool/{folder}
     // ──────────────────────────────────────────────
-    public function show(Folder $folder)
+   public function show(Folder $folder)
 {
-    $items = $folder->items()->orderBy('created_at', 'desc')->get();
-    
-    // tambah ini
-    $analisis = \App\Models\AnalisisKasus::where('folder_id', $folder->id)->first();
-    
-    return view('folder-detail', compact('folder', 'items', 'analisis'));
+    $items    = $folder->items()->latest()->get();
+    $analisis = \App\Models\AnalisisKasus::where('folder_id', $folder->id)->latest()->first();
+    $laporan  = $analisis
+        ? \App\Models\Laporan::where('analisis_id', $analisis->id)->first()
+        : null;
+
+    return view('folder-detail', compact('folder', 'items', 'analisis', 'laporan'));
 }
 
     // ──────────────────────────────────────────────

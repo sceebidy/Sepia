@@ -19,7 +19,7 @@ class AnalisisKasus extends Model
 
     public function folder()      { return $this->belongsTo(Folder::class, 'folder_id'); }
     public function swotItems()   { return $this->hasMany(SwotItem::class, 'analisis_id')->orderBy('urutan'); }
-    public function aktor()       { return $this->hasMany(AktorKasus::class, 'analisis_id'); }
+    public function aktor() { return $this->hasMany(AktorKasus::class, 'analisis_id'); }
     public function timeline()    { return $this->hasMany(TimelineKasus::class, 'analisis_id')->orderBy('urutan'); }
     public function rekomendasi() { return $this->hasMany(RekomendasiKasus::class, 'analisis_id')->orderBy('urutan'); }
     public function confidence()  { return $this->hasOne(ConfidenceKasus::class, 'analisis_id'); }

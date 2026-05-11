@@ -195,7 +195,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
 
 <div class="main">
 
-  <div class="topbar">
+<div class="topbar">
     <div class="topbar-left">
       <a class="back-btn" href="{{ route('datapool.show', $folder) }}">← Kembali</a>
       <div class="topbar-divider"></div>
@@ -206,10 +206,15 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
         <div style="width:7px;height:7px;border-radius:50%;background:var(--green-2)"></div>
         Input Manual · {{ $analisis->jumlah_sumber }} sumber
       </div>
+      <a href="{{ route('distribusi.show', [$folder, $analisis]) }}" class="tb-btn" style="background:#fffbeb;color:#b45309;border-color:#fde68a;">
+        📤 Distribusi
+      </a>
       <button class="tb-btn">⬇ Ekspor PDF</button>
     </div>
-  </div>
+</div>
 
+
+  
   <div class="result-banner">
     <div class="banner-left">
       <div class="banner-emoji">{{ $folder->emoji }}</div>

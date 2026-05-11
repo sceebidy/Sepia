@@ -223,38 +223,83 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg-tertiary); color
         </div>
 
         {{-- ② DISTRIBUSI --}}
-        <div style="cursor:not-allowed;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;opacity:0.7">
-          <div style="height:4px;background:#d97706"></div>
-          <div style="padding:18px 20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div style="width:36px;height:36px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📤</div>
-              <span style="font-size:13px;color:#9ca3af">→</span>
-            </div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Distribusi</div>
-            <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Kirim laporan dan nota dinas ke instansi terkait — Kejagung, KPK, dan lembaga pengawas.</div>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:11px;color:#6b7280">Belum tersedia</span>
-              <span style="font-size:11px;background:#fffbeb;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px">Segera →</span>
-            </div>
-          </div>
-        </div>
-
+@if($analisis)
+<div onclick="window.location.href='/datapool/{{ $folder->id }}/distribusi/{{ $analisis->id }}'"
+  style="cursor:pointer;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;transition:border-color 0.13s"
+  onmouseover="this.style.borderColor='#d97706'" onmouseout="this.style.borderColor='#e5e7eb'">
+  <div style="height:4px;background:#d97706"></div>
+  <div style="padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="width:36px;height:36px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📤</div>
+      <span style="font-size:13px;color:#9ca3af">→</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Distribusi</div>
+    <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Kirim laporan dan nota dinas ke instansi terkait — Kejagung, KPK, dan lembaga pengawas.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:11px;color:#6b7280">{{ $analisis->aktor->count() }} aktor teridentifikasi</span>
+      <span style="font-size:11px;background:#fffbeb;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px">Distribusi →</span>
+    </div>
+  </div>
+</div>
+@else
+<div style="cursor:not-allowed;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;opacity:0.7">
+  <div style="height:4px;background:#d97706"></div>
+  <div style="padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="width:36px;height:36px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📤</div>
+      <span style="font-size:13px;color:#9ca3af">→</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Distribusi</div>
+    <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Kirim laporan dan nota dinas ke instansi terkait — Kejagung, KPK, dan lembaga pengawas.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:11px;color:#6b7280">Analisis dulu untuk mengaktifkan</span>
+      <span style="font-size:11px;background:#fffbeb;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px">Segera →</span>
+    </div>
+  </div>
+</div>
+@endif
         {{-- ③ LAPORAN --}}
-        <div style="cursor:not-allowed;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;opacity:0.7">
-          <div style="height:4px;background:#065f46"></div>
-          <div style="padding:18px 20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div style="width:36px;height:36px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div>
-              <span style="font-size:13px;color:#9ca3af">→</span>
-            </div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Laporan</div>
-            <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Buat dan ekspor laporan analisis kasus — ringkasan eksekutif, daftar aktor, dan rekomendasi.</div>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:11px;color:#6b7280">Belum tersedia</span>
-              <span style="font-size:11px;background:#ecfdf5;color:#065f46;border:1px solid #99f6e4;padding:3px 10px;border-radius:20px">Segera →</span>
-            </div>
-          </div>
-        </div>
+{{-- ③ LAPORAN --}}
+@if($analisis)
+<div onclick="window.location.href='{{ route('laporan.buat', [$folder, $analisis]) }}'"
+  style="cursor:pointer;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;transition:border-color 0.13s"
+  onmouseover="this.style.borderColor='#065f46'" onmouseout="this.style.borderColor='#e5e7eb'">
+  <div style="height:4px;background:#065f46"></div>
+  <div style="padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="width:36px;height:36px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div>
+      <span style="font-size:13px;color:#9ca3af">→</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Laporan</div>
+    <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Buat dan ekspor laporan analisis kasus — ringkasan eksekutif, daftar aktor, dan rekomendasi.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      @if($laporan)
+        <span style="font-size:11px;color:#6b7280">Dibuat {{ $laporan->created_at->diffForHumans() }}</span>
+        <span style="font-size:11px;background:#ecfdf5;color:#065f46;border:1px solid #99f6e4;padding:3px 10px;border-radius:20px">Lihat →</span>
+      @else
+        <span style="font-size:11px;color:#6b7280">Siap dibuat</span>
+        <span style="font-size:11px;background:#ecfdf5;color:#065f46;border:1px solid #99f6e4;padding:3px 10px;border-radius:20px">Buat →</span>
+      @endif
+    </div>
+  </div>
+</div>
+@else
+<div style="cursor:not-allowed;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;opacity:0.6">
+  <div style="height:4px;background:#065f46"></div>
+  <div style="padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="width:36px;height:36px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div>
+      <span style="font-size:13px;color:#9ca3af">→</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Laporan</div>
+    <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-bottom:14px">Buat dan ekspor laporan analisis kasus — ringkasan eksekutif, daftar aktor, dan rekomendasi.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:11px;color:#6b7280">Analisis dulu untuk mengaktifkan</span>
+      <span style="font-size:11px;background:#ecfdf5;color:#065f46;border:1px solid #99f6e4;padding:3px 10px;border-radius:20px">Segera →</span>
+    </div>
+  </div>
+</div>
+@endif
 
       </div>
     </div>
@@ -418,9 +463,11 @@ function switchTipe(tipe, btn) {
 function startAnalysis(folderId) {
   // Kalau sudah ada analisis, langsung redirect ke hasil
   @if($analisis)
+  if (!confirm('Analisis sudah ada. Generate ulang dengan data terbaru?')) {
     window.location.href = '/datapool/{{ $folder->id }}/analisis/{{ $analisis->id }}';
     return;
-  @endif
+  }
+@endif
 
   // Tampilkan modal loading
   const modal = document.getElementById('modal-analisis-loading');

@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\AnalisisController;
+use App\Http\Controllers\DistribusiController;
+use App\Http\Controllers\LaporanController;
 
 // ── Dashboard ──────────────────────────────────
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -38,3 +40,15 @@ Route::prefix('datapool/{folder}/analisis')->name('analisis.')->group(function (
 });
 
 Route::post('/analisis/callback', [AnalisisController::class, 'callback'])->name('analisis.callback');
+
+Route::get('/datapool/{folder}/distribusi/{analisis}', [DistribusiController::class, 'show'])->name('distribusi.show');
+
+Route::get('/datapool/{folder}/distribusi/{analisis}', [DistribusiController::class, 'show'])->name('distribusi.show');
+Route::post('/datapool/{folder}/distribusi/{analisis}/generate', [DistribusiController::class, 'generate'])->name('distribusi.generate');
+
+Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+Route::get('/laporan/{laporan}', [LaporanController::class, 'show'])->name('laporan.show');
+Route::post('/datapool/{folder}/laporan/{analisis}', [LaporanController::class, 'store'])->name('laporan.store');
+Route::get('/datapool/{folder}/laporan/{analisis}/buat', [LaporanController::class, 'store'])
+    ->name('laporan.buat');
+

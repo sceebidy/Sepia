@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Issue;
 use App\Models\Tokoh;
 use App\Models\Laporan;
-use App\Models\Analisis;
+use App\Models\AnalisisKasus;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -13,28 +13,20 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // ══════════════════════════════════════
-        // STAT CARDS
-        // ══════════════════════════════════════
-
+        // ── STAT CARDS
         $totalIsu      = Issue::aktif()->count();
         $risikoTinggi  = Issue::aktif()->risiko('tinggi')->count();
-        $totalLaporan  = Laporan::count();
-        $totalAnalisis = Analisis::count();
+        $totalLaporan  = Laporan::whereNotNull('analisis_id')->count() + Laporan::whereNull('analisis_id')->count();
+        $totalAnalisis = AnalisisKasus::count();
         $totalTokoh    = Tokoh::aktif()->count();
 
-        // ══════════════════════════════════════
-        // DATA PER KATEGORI (donut + bar chart)
-        // ══════════════════════════════════════
-
+        // ── DATA PER KATEGORI
         $kategoriList = ['ideologi', 'politik', 'ekonomi', 'sosbud', 'hankam'];
-
         $kategoriData = [];
 
         foreach ($kategoriList as $kat) {
             $totalKat = Issue::aktif()->kategori($kat)->count();
 
-            // sub kategori count
             $subKatCounts = Issue::aktif()
                 ->kategori($kat)
                 ->select('sub_kategori', DB::raw('count(*) as total'))
@@ -42,44 +34,24 @@ class DashboardController extends Controller
                 ->pluck('total', 'sub_kategori')
                 ->toArray();
 
-            // hitung persentase per sub kategori
             $subKatPersentase = [];
             foreach ($subKatCounts as $sub => $count) {
-                $subKatPersentase[$sub] = $totalKat > 0
-                    ? round(($count / $totalKat) * 100)
-                    : 0;
+                $subKatPersentase[$sub] = $totalKat > 0 ? round(($count / $totalKat) * 100) : 0;
             }
 
-            // risiko breakdown
-            $risikoBreakdown = Issue::aktif()
-                ->kategori($kat)
-                ->select('risiko', DB::raw('count(*) as total'))
-                ->groupBy('risiko')
-                ->pluck('total', 'risiko')
-                ->toArray();
-
-            // 2 isu terbaru (recent items)
             $recentIssues = Issue::aktif()
                 ->kategori($kat)
                 ->orderBy('created_at', 'desc')
                 ->limit(2)
                 ->get(['judul', 'created_at']);
 
-            // minggu ini
             $mingguIni = Issue::aktif()
                 ->kategori($kat)
-                ->whereBetween('created_at', [
-                    Carbon::now()->startOfWeek(),
-                    Carbon::now()->endOfWeek(),
-                ])
+                ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
                 ->count();
 
-            // aktor (tokoh) terkait kategori ini
-            $totalAktor = Tokoh::aktif()
-                ->where('kategori', $kat)
-                ->count();
+            $totalAktor = Tokoh::aktif()->where('kategori', $kat)->count();
 
-            // level risiko dominan
             $risikoKat = Issue::aktif()
                 ->kategori($kat)
                 ->select('risiko', DB::raw('count(*) as total'))
@@ -88,48 +60,54 @@ class DashboardController extends Controller
                 ->first();
 
             $kategoriData[$kat] = [
-                'total'            => $totalKat,
-                'minggu_ini'       => $mingguIni,
-                'total_aktor'      => $totalAktor,
-                'risiko_dominan'   => $risikoKat ? $risikoKat->risiko : 'rendah',
-                'sub_persentase'   => $subKatPersentase,
-                'risiko_breakdown' => $risikoBreakdown,
-                'recent'           => $recentIssues,
+                'total'          => $totalKat,
+                'minggu_ini'     => $mingguIni,
+                'total_aktor'    => $totalAktor,
+                'risiko_dominan' => $risikoKat ? $risikoKat->risiko : 'rendah',
+                'sub_persentase' => $subKatPersentase,
+                'recent'         => $recentIssues,
             ];
         }
 
-        // ══════════════════════════════════════
-        // SPARKLINE TREN 7 HARI PER KATEGORI
-        // ══════════════════════════════════════
-
+        // ── SPARKLINE TREN 7 HARI
         $trendData = [];
-
         foreach ($kategoriList as $kat) {
             $trend = [];
             for ($i = 6; $i >= 0; $i--) {
                 $tanggal = Carbon::now()->subDays($i)->toDateString();
-                $count   = Issue::aktif()
-                    ->kategori($kat)
-                    ->whereDate('created_at', $tanggal)
-                    ->count();
-                $trend[] = $count;
+                $trend[] = Issue::aktif()->kategori($kat)->whereDate('created_at', $tanggal)->count();
             }
             $trendData[$kat] = $trend;
         }
 
-        // ══════════════════════════════════════
-        // PROFILING TOKOH PRIORITAS TINGGI
-        // ══════════════════════════════════════
-
+        // ── PROFILING TOKOH PRIORITAS
         $tokohPrioritas = Tokoh::aktif()
             ->risiko('tinggi')
             ->orderBy('created_at', 'desc')
             ->limit(3)
             ->get(['nama', 'inisial', 'kategori', 'peran', 'wilayah', 'risiko']);
 
-        // ══════════════════════════════════════
-        // KIRIM KE BLADE
-        // ══════════════════════════════════════
+        // ── RIWAYAT LAPORAN (dari RPI)
+        $riwayatLaporan = Laporan::with('folder')
+            ->whereNotNull('analisis_id')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // ── GRAFIK ANALISIS RPI (7 hari terakhir)
+        $analisisTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $tanggal = Carbon::now()->subDays($i)->toDateString();
+            $analisisTrend[] = AnalisisKasus::whereDate('created_at', $tanggal)->count();
+        }
+
+        // ── STAT RISIKO DARI RPI
+        $rpiStats = [
+            'total'        => AnalisisKasus::count(),
+            'risiko_tinggi' => AnalisisKasus::where('tingkat_risiko', '>=', 7)->count(),
+            'risiko_sedang' => AnalisisKasus::whereBetween('tingkat_risiko', [4, 6.9])->count(),
+            'risiko_rendah' => AnalisisKasus::where('tingkat_risiko', '<', 4)->count(),
+        ];
 
         return view('dashboard', compact(
             'totalIsu',
@@ -140,6 +118,9 @@ class DashboardController extends Controller
             'kategoriData',
             'trendData',
             'tokohPrioritas',
+            'riwayatLaporan',
+            'analisisTrend',
+            'rpiStats',
         ));
     }
 }

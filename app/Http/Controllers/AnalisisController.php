@@ -15,99 +15,99 @@ use Illuminate\Support\Facades\Http;
 
 class AnalisisController extends Controller
 {
-    // ── Trigger analisis ke n8n (POST) - Opsi B: Loading + Auto Redirect
     public function store(Request $request, Folder $folder)
     {
-        // Validasi folder punya items
         $items = $folder->items()->get();
         if ($items->isEmpty()) {
             return response()->json(['error' => 'Folder tidak ada sumber data'], 400);
         }
 
         try {
-            // Buat record analisis kosong dulu (sebagai placeholder)
-            $analisis = AnalisisKasus::updateOrCreate(
-                ['folder_id' => $folder->id],
-                [
-                    'judul'            => $folder->nama,
-                    'tanggal_analisis' => now(),
-                    'tingkat_risiko'   => 0,
-                    'jumlah_sumber'    => $items->count(),
-                    'model_versi'      => 'SEPIA v1.0 (AI)',
-                ]
-            );
+            // Hapus analisis lama beserta relasinya
+            $existing = AnalisisKasus::where('folder_id', $folder->id)->first();
+            if ($existing) {
+                SwotItem::where('analisis_id', $existing->id)->delete();
+                AktorKasus::where('analisis_id', $existing->id)->delete();
+                TimelineKasus::where('analisis_id', $existing->id)->delete();
+                RekomendasiKasus::where('analisis_id', $existing->id)->delete();
+                RiskAssessment::where('analisis_id', $existing->id)->delete();
+                ConfidenceKasus::where('analisis_id', $existing->id)->delete();
+                $existing->delete();
+            }
 
-            // Kirim ke n8n webhook
+            $analisis = AnalisisKasus::create([
+                'folder_id'        => $folder->id,
+                'judul'            => $folder->nama,
+                'tanggal_analisis' => now(),
+                'tingkat_risiko'   => 0,
+                'jumlah_sumber'    => $items->count(),
+                'model_versi'      => 'SEPIA v1.0 (AI)',
+            ]);
+
             $this->sendToN8n($folder, $items, $analisis);
 
             return response()->json([
-                'success' => true,
+                'success'     => true,
                 'analisis_id' => $analisis->id,
-                'folder_id' => $folder->id,
-                'message' => 'Analisis dimulai, tunggu hasil...'
+                'folder_id'   => $folder->id,
+                'message'     => 'Analisis dimulai, tunggu hasil...',
             ]);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    // ── Kirim data ke n8n webhook
     private function sendToN8n($folder, $items, $analisis)
     {
         $n8nWebhook = env('N8N_WEBHOOK_URL');
-        
+
         if (!$n8nWebhook) {
             throw new \Exception('N8N_WEBHOOK_URL tidak dikonfigurasi di .env');
         }
 
-        // Siapkan payload untuk n8n
         $payload = [
+            'action'       => 'analisis',
             'folder_id'    => $folder->id,
             'analisis_id'  => $analisis->id,
             'folder_nama'  => $folder->nama,
             'items'        => $items->map(function ($item) {
                 return [
-                    'id'         => $item->id,
-                    'tipe'       => $item->tipe,
-                    'judul'      => $item->judul,
-                    'konten'     => $item->konten,
-                    'file_path'  => $item->file_path,
-                    'file_nama'  => $item->file_nama,
+                    'id'        => $item->id,
+                    'tipe'      => $item->tipe,
+                    'judul'     => $item->judul,
+                    'konten'    => $item->konten,
+                    'file_path' => $item->file_path,
+                    'file_nama' => $item->file_nama,
                 ];
             })->toArray(),
             'callback_url' => 'https://salsa-unnerving-enrich.ngrok-free.dev/analisis/callback',
         ];
 
-        try {
-            $response = Http::timeout(10)->post($n8nWebhook, $payload);
-            
-            if (!$response->successful()) {
-                throw new \Exception('N8n webhook error: ' . $response->body());
-            }
-        } catch (\Exception $e) {
-            throw new \Exception('Gagal terhubung ke n8n: ' . $e->getMessage());
+        $response = Http::timeout(10)->post($n8nWebhook, $payload);
+
+        if (!$response->successful()) {
+            throw new \Exception('N8n webhook error: ' . $response->body());
         }
     }
 
-    // ── Callback dari n8n - Terima hasil analisis
     public function callback(Request $request)
     {
         try {
             $data = $request->validate([
-                'analisis_id'       => 'required|integer',
-                'swot'              => 'required|array',
-                'aktor'             => 'required|array',
-                'timeline'          => 'required|array',
-                'rekomendasi'       => 'required|array',
-                'risk'              => 'required|array',
-                'confidence'        => 'required|array',
-                'tingkat_risiko'    => 'required|numeric',
-                'prediksi_vonis'    => 'nullable|string',
+                'analisis_id'    => 'required|integer',
+                'swot'           => 'required|array',
+                'aktor'          => 'required|array',
+                'timeline'       => 'required|array',
+                'rekomendasi'    => 'required|array',
+                'risk'           => 'required|array',
+                'confidence'     => 'required|array',
+                'tingkat_risiko' => 'required|numeric',
+                'prediksi_vonis' => 'nullable|string',
             ]);
 
             $analisis = AnalisisKasus::findOrFail($data['analisis_id']);
 
-            // Hapus data lama kalau ada (untuk update)
             SwotItem::where('analisis_id', $analisis->id)->delete();
             AktorKasus::where('analisis_id', $analisis->id)->delete();
             TimelineKasus::where('analisis_id', $analisis->id)->delete();
@@ -115,15 +115,13 @@ class AnalisisController extends Controller
             RiskAssessment::where('analisis_id', $analisis->id)->delete();
             ConfidenceKasus::where('analisis_id', $analisis->id)->delete();
 
-            // Update header analisis
             $analisis->update([
                 'tingkat_risiko' => $data['tingkat_risiko'],
                 'prediksi_vonis' => $data['prediksi_vonis'],
             ]);
 
-            // ── Simpan SWOT
-            foreach ($data['swot'] as $tipe => $items) {
-                foreach ($items as $i => $isi) {
+            foreach ($data['swot'] as $tipe => $swotItems) {
+                foreach ($swotItems as $i => $isi) {
                     if (trim($isi)) {
                         SwotItem::create([
                             'analisis_id' => $analisis->id,
@@ -135,7 +133,6 @@ class AnalisisController extends Controller
                 }
             }
 
-            // ── Simpan Aktor
             foreach ($data['aktor'] as $i => $aktor) {
                 if (isset($aktor['nama']) && trim($aktor['nama'])) {
                     AktorKasus::create([
@@ -149,7 +146,6 @@ class AnalisisController extends Controller
                 }
             }
 
-            // ── Simpan Timeline
             foreach ($data['timeline'] as $i => $tl) {
                 if (isset($tl['tanggal']) && trim($tl['tanggal'])) {
                     TimelineKasus::create([
@@ -162,7 +158,6 @@ class AnalisisController extends Controller
                 }
             }
 
-            // ── Simpan Rekomendasi
             foreach ($data['rekomendasi'] as $i => $reko) {
                 if (isset($reko['judul']) && trim($reko['judul'])) {
                     RekomendasiKasus::create([
@@ -175,7 +170,6 @@ class AnalisisController extends Controller
                 }
             }
 
-            // ── Simpan Risk Assessment
             foreach ($data['risk'] as $i => $risk) {
                 if (isset($risk['label']) && trim($risk['label'])) {
                     RiskAssessment::create([
@@ -189,7 +183,6 @@ class AnalisisController extends Controller
                 }
             }
 
-            // ── Simpan Confidence
             ConfidenceKasus::create([
                 'analisis_id'        => $analisis->id,
                 'kelengkapan_data'   => $data['confidence']['kelengkapan_data'] ?? 0,
@@ -199,24 +192,19 @@ class AnalisisController extends Controller
             ]);
 
             return response()->json([
-                'success' => true,
+                'success'     => true,
                 'analisis_id' => $analisis->id,
-                'message' => 'Analisis berhasil disimpan'
+                'message'     => 'Analisis berhasil disimpan',
             ]);
+
         } catch (\Exception $e) {
             \Log::error('Callback error: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    // ── Tampilkan hasil analisis (GET)
     public function show(Folder $folder, AnalisisKasus $analisis)
     {
-    $analisis->load(['swotItems','aktor','timeline','rekomendasi','confidence','riskItems']);
-
-    if (request()->wantsJson()) {
-        return response()->json(['analisis' => $analisis]);
-    }
         $analisis->load([
             'swotItems',
             'aktor',
@@ -225,6 +213,10 @@ class AnalisisController extends Controller
             'confidence',
             'riskItems',
         ]);
+
+        if (request()->wantsJson()) {
+            return response()->json(['analisis' => $analisis]);
+        }
 
         return view('analisis-hasil', compact('folder', 'analisis'));
     }

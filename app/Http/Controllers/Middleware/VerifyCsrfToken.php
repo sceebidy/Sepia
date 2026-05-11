@@ -16,5 +16,6 @@ class VerifyCsrfToken extends Middleware
         '/n8n/callback',
         '/n8n/test-callback',
         '/analisis/callback',
+        '/distribusi/callback',
     ];
 }
