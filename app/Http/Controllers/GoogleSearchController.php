@@ -3,41 +3,75 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
-use App\Models\FolderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GoogleSearchController extends Controller
 {
     /**
      * GET /datapool/{folder}/search
-     * Tampilkan hasil pencarian Google
+     * Cari berita menggunakan OpenAI Web Search
      */
     public function search(Request $request, Folder $folder)
     {
-        $query = $request->input('q', $folder->nama);
+        $query   = $request->input('q', $folder->nama);
         $results = [];
-        $error = null;
+        $error   = null;
 
         if ($query) {
             try {
-                $response = Http::timeout(10)->get('https://www.googleapis.com/customsearch/v1', [
-                    'key'  => env('GOOGLE_SEARCH_API_KEY'),
-                    'cx'   => env('GOOGLE_SEARCH_ENGINE_ID'),
-                    'q'    => $query,
-                    'num'  => 10,
-                    'lr'   => 'lang_id',
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+                    'Content-Type'  => 'application/json',
+                ])->timeout(30)->post('https://api.openai.com/v1/responses', [
+                    'model' => 'gpt-4o',
+                    'tools' => [['type' => 'web_search_preview']],
+                    'input' => 'Cari 10 berita atau artikel terbaru tentang: "' . $query . '". ' .
+                               'Kembalikan HANYA JSON array tanpa markdown, format: ' .
+                               '[{"judul":"...","url":"...","snippet":"...","sumber":"..."}]. ' .
+                               'Maksimal 10 hasil, prioritaskan sumber berita Indonesia.',
                 ]);
 
                 if ($response->successful()) {
-                    $data = $response->json();
-                    $results = $data['items'] ?? [];
+                    $data    = $response->json();
+                    $content = '';
+
+                    // Ambil teks dari output
+                    foreach ($data['output'] ?? [] as $out) {
+                        if ($out['type'] === 'message') {
+                            foreach ($out['content'] ?? [] as $c) {
+                                if ($c['type'] === 'output_text') {
+                                    $content = $c['text'] ?? '';
+                                }
+                            }
+                        }
+                    }
+
+                    // Parse JSON dari response
+                    $content = trim(preg_replace('/```json|```/', '', $content));
+                    preg_match('/\[.*\]/s', $content, $matches);
+                    $parsed = json_decode($matches[0] ?? $content, true);
+
+                    if (is_array($parsed)) {
+                        $results = array_slice($parsed, 0, 10);
+                    } else {
+                        $error = 'Gagal parse hasil pencarian.';
+                        Log::warning('[SEPIA Search] Parse gagal: ' . substr($content, 0, 200));
+                    }
                 } else {
-                    $error = 'Google API error: ' . $response->status();
+                    $error = 'OpenAI error: ' . $response->status() . ' — ' . $response->body();
+                    Log::error('[SEPIA Search] ' . $error);
                 }
             } catch (\Exception $e) {
-                $error = 'Gagal menghubungi Google: ' . $e->getMessage();
+                $error = 'Gagal menghubungi OpenAI: ' . $e->getMessage();
+                Log::error('[SEPIA Search] Exception: ' . $e->getMessage());
             }
+        }
+
+        // Return JSON jika request AJAX (dari modal)
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['results' => $results, 'error' => $error]);
         }
 
         return view('google-search', compact('folder', 'query', 'results', 'error'));
@@ -48,34 +82,31 @@ class GoogleSearchController extends Controller
      * Simpan link terpilih ke folder_items
      */
     public function simpan(Request $request, Folder $folder)
-    {
-        $links = $request->input('links', []);
-        $saved = 0;
+{
+    $links = $request->input('links', []);
+    $saved = 0;
 
-        foreach ($links as $link) {
-            $judul = $link['judul'] ?? 'Sumber dari Google';
-            $url   = $link['url']   ?? null;
+    foreach ($links as $link) {
+        $judul = $link['judul'] ?? 'Sumber dari pencarian';
+        $url   = $link['url']   ?? null;
+        if (!$url) continue;
 
-            if (!$url) continue;
-
-            // Cek duplikat
-            $exists = $folder->items()
-                ->where('tipe', 'link')
-                ->where('konten', $url)
-                ->exists();
-
-            if (!$exists) {
-                $folder->items()->create([
-                    'tipe'              => 'link',
-                    'judul'             => $judul,
-                    'konten'            => $url,
-                    'ditambahkan_oleh'  => 'C. Rasyid',
-                ]);
-                $saved++;
-            }
+        $exists = $folder->items()->where('tipe', 'link')->where('konten', $url)->exists();
+        if (!$exists) {
+            $folder->items()->create([
+                'tipe'             => 'link',
+                'judul'            => $judul,
+                'konten'           => $url,
+                'ditambahkan_oleh' => 'Analis SEPIA',
+            ]);
+            $saved++;
         }
-
-        return redirect()->route('datapool.show', $folder)
-            ->with('success', "{$saved} link berhasil ditambahkan ke folder.");
     }
+
+    if ($request->wantsJson() || $request->ajax()) {
+        return response()->json(['success' => true, 'saved' => $saved, 'message' => "{$saved} link ditambahkan"]);
+    }
+
+    return redirect()->route('datapool.show', $folder)->with('success', "{$saved} link berhasil ditambahkan ke folder.");
+}
 }
