@@ -3,165 +3,191 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=1280" />
-<title>SEPIA — Hasil Analisis: {{ $analisis->judul }}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>SEPIA — Laporan: {{ $analisis->judul }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+@php
+  $risikoVal    = (float) $analisis->tingkat_risiko;
+  $klasifikasi  = $analisis->klasifikasi_dokumen ?? ($risikoVal >= 7 ? 'RAHASIA' : ($risikoVal >= 4 ? 'TERBATAS' : 'BIASA'));
+  $perihal      = $analisis->perihal ?? 'Perkembangan Situasi ' . $analisis->judul;
+  $wilayah      = $analisis->wilayah ?? $analisis->judul;
+  $periode      = $analisis->periode ?? now()->format('d M Y');
+  $statusWaspada = $risikoVal >= 8 ? 'WASPADA MERAH' : ($risikoVal >= 6 ? 'WASPADA KUNING' : 'KONDUSIF');
+  $statusColor  = $risikoVal >= 8 ? '#dc2626' : ($risikoVal >= 6 ? '#d97706' : '#16a34a');
+  $faktaFakta   = $analisis->fakta_fakta ? json_decode($analisis->fakta_fakta, true) : [];
+  if (is_string($faktaFakta)) $faktaFakta = json_decode($faktaFakta, true) ?? [];
+  $jabatanRek   = $analisis->jabatan_rekomendasi ? json_decode($analisis->jabatan_rekomendasi, true) : [];
+  if (is_string($jabatanRek)) $jabatanRek = json_decode($jabatanRek, true) ?? [];
+  $earlyWarning = $analisis->early_warning ? json_decode($analisis->early_warning, true) : [];
+  if (is_string($earlyWarning)) $earlyWarning = json_decode($earlyWarning, true) ?? [];
+  $swotGroups   = $analisis->swotItems->groupBy('tipe');
+  $nomorLap     = 'SEPIA/' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $analisis->judul), 0, 6)) . '/' . date('MY') . '/' . str_pad($analisis->id, 3, '0', STR_PAD_LEFT);
+@endphp
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --green:#1a5c2e; --green-2:#2e7d4a; --green-light:#f0f7f2;
-  --green-border:#b6d9c3; --text:#1a1a1a; --text-muted:#6b7280;
-  --border:#e5e7eb; --bg:#fff; --bg-2:#f9fafb; --bg-3:#f3f4f6;
-  --amber:#d97706; --nav-width:220px;
-  --s-bg:#f0fdf4;--s-border:#86efac;--s-text:#166534;--s-accent:#16a34a;
-  --w-bg:#fff7ed;--w-border:#fdba74;--w-text:#9a3412;--w-accent:#ea580c;
-  --o-bg:#eff6ff;--o-border:#93c5fd;--o-text:#1e40af;--o-accent:#2563eb;
-  --t-bg:#fef2f2;--t-border:#fca5a5;--t-text:#991b1b;--t-accent:#dc2626;
+  --green: #1a5c2e; --green-light: #edfaf3; --green-border: #8fd4b1;
+  --text: #0f172a; --text-muted: #64748b; --border: #e2e8f0;
+  --bg: #f1f5f9; --nav-width: 220px;
 }
-body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--text); height:100vh; display:flex; overflow:hidden; }
+html, body { height: 100%; }
+body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); display: flex; overflow: hidden; font-size: 13px; }
 
-.sidenav { width:var(--nav-width); background:var(--green); display:flex; flex-direction:column; flex-shrink:0; }
-.sidenav-brand { padding:22px 20px 18px; border-bottom:1px solid rgba(255,255,255,0.1); }
-.brand-logo { font-size:18px; font-weight:700; letter-spacing:0.14em; color:#fff; }
-.brand-sub { font-size:10px; color:rgba(255,255,255,0.5); margin-top:2px; letter-spacing:0.05em; text-transform:uppercase; }
-.sidenav-section { padding:18px 12px 8px; }
-.sidenav-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.4); padding:0 8px; margin-bottom:6px; }
-.nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; margin-bottom:2px; text-decoration:none; transition:background 0.12s; border:1px solid transparent; color:rgba(255,255,255,0.72); font-size:13px; font-weight:500; }
-.nav-item:hover { background:rgba(255,255,255,0.1); color:#fff; }
-.nav-item.active { background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.18); color:#fff; }
-.nav-item .nav-icon { width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; background:rgba(255,255,255,0.1); }
-.nav-item-text { flex:1; }
-.nav-item-badge { font-size:10px; background:rgba(255,255,255,0.2); color:#fff; padding:2px 7px; border-radius:20px; }
-.nav-item-badge.alert { background:#ef4444; }
-.sidenav-divider { height:1px; background:rgba(255,255,255,0.08); margin:10px 12px; }
-.sidenav-bottom { margin-top:auto; padding:14px 12px; border-top:1px solid rgba(255,255,255,0.1); }
-.user-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; }
-.user-avatar { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.2); color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
-.user-name { font-size:12px; font-weight:500; color:#fff; }
-.user-role { font-size:10px; color:rgba(255,255,255,0.5); margin-top:1px; }
+/* SIDENAV */
+.sidenav { width: var(--nav-width); background: var(--green); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidenav-brand { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.brand-logo { font-size: 18px; font-weight: 700; letter-spacing: 0.14em; color: #fff; }
+.brand-sub { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+.sidenav-section { padding: 18px 12px 8px; }
+.sidenav-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); padding: 0 8px; margin-bottom: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; margin-bottom: 2px; text-decoration: none; border: 1px solid transparent; color: rgba(255,255,255,0.72); font-size: 13px; font-weight: 500; }
+.nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.18); color: #fff; }
+.nav-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: rgba(255,255,255,0.1); }
+.nav-item.active .nav-icon { background: rgba(255,255,255,0.2); }
+.nav-item-text { flex: 1; }
+.nav-badge { font-size: 10px; background: rgba(255,255,255,0.2); color: #fff; padding: 2px 7px; border-radius: 20px; }
+.nav-badge.alert { background: #ef4444; }
+.sidenav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 10px 12px; }
+.sidenav-bottom { margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+.user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.user-name { font-size: 12px; font-weight: 500; color: #fff; }
+.user-role { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 1px; }
 
-.main { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-.topbar { display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:56px; background:#fff; border-bottom:1px solid var(--border); flex-shrink:0; z-index:10; }
-.topbar-left { display:flex; align-items:center; gap:10px; }
-.back-btn { display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:20px; font-size:12px; color:var(--text-muted); text-decoration:none; transition:all 0.12s; }
-.back-btn:hover { border-color:var(--green-border); color:var(--green); background:var(--green-light); }
-.topbar-divider { width:1px; height:20px; background:var(--border); }
-.page-title { font-size:15px; font-weight:600; }
-.topbar-right { display:flex; align-items:center; gap:8px; }
-.tb-btn { padding:7px 14px; font-size:12px; border:1px solid var(--border); border-radius:20px; background:#fff; color:var(--text-muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.12s; text-decoration:none; display:flex; align-items:center; gap:5px; }
-.tb-btn:hover { border-color:var(--green-border); color:var(--green); background:var(--green-light); }
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; background: #fff; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-right { display: flex; align-items: center; gap: 6px; }
+.tb-btn { padding: 7px 13px; font-size: 11.5px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text-muted); cursor: pointer; font-family: 'Sora', sans-serif; font-weight: 500; transition: all 0.13s; display: flex; align-items: center; gap: 5px; text-decoration: none; }
+.tb-btn:hover { border-color: var(--green-border); color: var(--green); background: var(--green-light); }
+.tb-btn.primary { background: var(--green); color: #fff; border-color: var(--green); }
+.tb-btn.warning { background: #fffbeb; color: #b45309; border-color: #fde68a; }
 
-.result-banner { background:var(--green); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; position:relative; overflow:hidden; }
-.result-banner::after { content:'ANALISIS'; position:absolute; right:220px; top:50%; transform:translateY(-50%); font-size:72px; font-weight:900; letter-spacing:0.15em; color:rgba(255,255,255,0.04); pointer-events:none; font-family:'DM Serif Display',serif; }
-.banner-left { display:flex; align-items:center; gap:14px; z-index:1; }
-.banner-emoji { width:46px; height:46px; border-radius:12px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-.banner-title { font-size:15px; font-weight:600; color:#fff; margin-bottom:3px; }
-.banner-meta { font-size:11px; color:rgba(255,255,255,0.65); display:flex; align-items:center; gap:10px; }
-.banner-dot { width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,0.4); }
-.banner-right { display:flex; align-items:center; gap:8px; z-index:1; }
-.score-pill { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:8px 16px; }
-.score-label { font-size:10px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.08em; }
-.score-val { font-size:22px; font-weight:700; color:#fff; font-family:'DM Mono',monospace; line-height:1; }
-.score-unit { font-size:11px; color:rgba(255,255,255,0.5); align-self:flex-end; margin-bottom:2px; }
+.content { flex: 1; overflow-y: auto; padding: 24px 28px 60px; background: var(--bg); }
+.content::-webkit-scrollbar { width: 5px; }
+.content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
 
-.content-scroll { flex:1; overflow-y:auto; padding:22px 28px 100px; display:flex; flex-direction:column; gap:20px; }
+/* EDIT PANEL */
+.edit-panel { background: #fff; border: 1.5px solid var(--green-border); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: none; }
+.edit-panel.open { display: block; }
+.edit-panel-title { font-size: 12px; font-weight: 600; color: var(--green); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.edit-field label { font-size: 11px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 4px; }
+.edit-field input { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; font-family: 'Sora', sans-serif; font-size: 12px; outline: none; }
+.edit-field input:focus { border-color: var(--green-border); }
+.edit-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.save-btn { padding: 7px 16px; background: var(--green); color: #fff; border: none; border-radius: 7px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-.sec-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-.sec-title::after { content:''; flex:1; height:1px; background:var(--border); }
+/* ══════════════════════════════
+   DOKUMEN — 1:1 dengan Word
+   A4: 794px lebar, margin sama
+══════════════════════════════ */
+.dok-wrap { max-width: 794px; margin: 0 auto; }
 
-.swot-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.swot-card { border-radius:14px; padding:18px 20px; border:1.5px solid; }
-.swot-card.S { background:var(--s-bg); border-color:var(--s-border); }
-.swot-card.W { background:var(--w-bg); border-color:var(--w-border); }
-.swot-card.O { background:var(--o-bg); border-color:var(--o-border); }
-.swot-card.T { background:var(--t-bg); border-color:var(--t-border); }
-.swot-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-.swot-letter { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; font-family:'DM Serif Display',serif; flex-shrink:0; color:#fff; }
-.swot-card.S .swot-letter { background:var(--s-accent); }
-.swot-card.W .swot-letter { background:var(--w-accent); }
-.swot-card.O .swot-letter { background:var(--o-accent); }
-.swot-card.T .swot-letter { background:var(--t-accent); }
-.swot-card-title { font-size:13px; font-weight:700; }
-.swot-card.S .swot-card-title { color:var(--s-text); }
-.swot-card.W .swot-card-title { color:var(--w-text); }
-.swot-card.O .swot-card-title { color:var(--o-text); }
-.swot-card.T .swot-card-title { color:var(--t-text); }
-.swot-card-sub { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:1px; }
-.swot-items { display:flex; flex-direction:column; gap:7px; }
-.swot-item { display:flex; align-items:flex-start; gap:9px; font-size:12px; line-height:1.55; }
-.swot-item-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:5px; }
-.swot-card.S .swot-item-dot { background:var(--s-accent); }
-.swot-card.W .swot-item-dot { background:var(--w-accent); }
-.swot-card.O .swot-item-dot { background:var(--o-accent); }
-.swot-card.T .swot-item-dot { background:var(--t-accent); }
-.swot-card.S .swot-item { color:#14532d; }
-.swot-card.W .swot-item { color:#7c2d12; }
-.swot-card.O .swot-item { color:#1e3a8a; }
-.swot-card.T .swot-item { color:#7f1d1d; }
+.dok-page {
+  background: #fff;
+  width: 794px;
+  min-height: 1123px;
+  margin: 0 auto 24px;
+  padding: 72px 60px 60px 85px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  line-height: 1.8;
+  color: #000;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  position: relative;
+}
 
-.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.two-col { display:grid; grid-template-columns:2fr 1fr; gap:10px; }
-.analysis-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; }
-.analysis-card-head { padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
-.analysis-card-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; }
-.analysis-card-label { font-size:13px; font-weight:600; }
-.analysis-card-sublabel { font-size:10px; color:var(--text-muted); margin-top:1px; }
-.analysis-card-body { padding:14px 18px; }
+/* KOP */
+.kop { text-align: center; margin-bottom: 4px; }
+.kop h1 { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
+.kop h2 { font-size: 11pt; font-weight: bold; margin: 2px 0 0; }
+.kop p  { font-size: 9pt; color: #444; margin: 3px 0 0; }
 
-.risk-meter { margin-bottom:12px; }
-.risk-label-row { display:flex; justify-content:space-between; margin-bottom:5px; }
-.risk-name { font-size:11px; color:var(--text-muted); }
-.risk-pct { font-size:11px; font-weight:600; font-family:'DM Mono',monospace; }
-.risk-bar { height:6px; background:var(--bg-3); border-radius:10px; overflow:hidden; }
-.risk-fill { height:100%; border-radius:10px; }
+/* Garis hitam penuh */
+.line-full { width: 100%; height: 4px; background: #000; margin: 10px 0 12px; }
+.line-thin { width: 100%; height: 1px; background: #000; margin: 10px 0; }
 
-.timeline { display:flex; flex-direction:column; }
-.tl-item { display:flex; gap:12px; position:relative; padding-bottom:14px; }
-.tl-item:last-child { padding-bottom:0; }
-.tl-left { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:28px; }
-.tl-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; border:2px solid #fff; box-shadow:0 0 0 2px currentColor; margin-top:2px; }
-.tl-line { flex:1; width:1.5px; background:var(--border); margin-top:4px; }
-.tl-item:last-child .tl-line { display:none; }
-.tl-date { font-size:10px; font-family:'DM Mono',monospace; color:var(--text-muted); margin-bottom:2px; }
-.tl-text { font-size:12px; color:var(--text); line-height:1.5; }
+/* KLASIFIKASI */
+.klas { text-align: center; margin-bottom: 12px; }
+.klas span { display: inline-block; border: 2.5px solid #000; padding: 3px 20px; font-size: 11pt; font-weight: bold; letter-spacing: 0.2em; }
 
-.actor-list { display:flex; flex-direction:column; gap:8px; }
-.actor-item { display:flex; align-items:center; gap:10px; }
-.actor-avatar { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; color:#fff; }
-.actor-name { font-size:12px; font-weight:500; }
-.actor-role { font-size:10px; color:var(--text-muted); margin-top:1px; }
-.actor-status { margin-left:auto; font-size:10px; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0; }
-.status-tersangka { background:#fee2e2; color:#b91c1c; }
-.status-saksi { background:#fef9c3; color:#a16207; }
-.status-dpo { background:#fae8ff; color:#86198f; }
+/* INFO TABLE */
+.info-tbl { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.info-tbl td { font-size: 11.5pt; padding: 1px 0; vertical-align: top; }
+.info-tbl .ik { width: 155px; font-weight: bold; }
+.info-tbl .is { width: 14px; }
+.info-tbl .iv { }
 
-.rekomendasi-list { display:flex; flex-direction:column; gap:8px; }
-.reko-item { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg-2); transition:border-color 0.12s; }
-.reko-item:hover { border-color:var(--green-border); background:var(--green-light); }
-.reko-num { width:26px; height:26px; border-radius:7px; background:var(--green); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'DM Mono',monospace; }
-.reko-title { font-size:12px; font-weight:600; margin-bottom:2px; }
-.reko-desc { font-size:11px; color:var(--text-muted); line-height:1.5; }
-.reko-priority { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; margin-top:5px; display:inline-block; }
-.prio-tinggi { background:#fee2e2; color:#b91c1c; }
-.prio-sedang { background:#fef9c3; color:#a16207; }
-.prio-rendah { background:var(--green-light); color:var(--green); }
+/* RINGKASAN */
+.ringkasan { font-style: italic; font-size: 11.5pt; text-align: justify; margin-bottom: 4px; line-height: 1.8; }
 
-.confidence-wrap { display:flex; flex-direction:column; align-items:center; padding:20px 0 14px; }
-.conf-ring { position:relative; width:110px; height:110px; margin-bottom:14px; }
-.conf-ring svg { transform:rotate(-90deg); }
-.conf-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.conf-pct { font-size:22px; font-weight:800; font-family:'DM Mono',monospace; line-height:1; }
-.conf-sub { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
-.conf-labels { display:flex; flex-direction:column; gap:8px; width:100%; }
-.conf-label-row { display:flex; justify-content:space-between; align-items:center; }
-.conf-label-name { font-size:11px; color:var(--text-muted); }
-.conf-label-val { font-size:11px; font-weight:600; font-family:'DM Mono',monospace; }
-.conf-bar-sm { height:4px; background:var(--bg-3); border-radius:10px; margin-top:3px; overflow:hidden; }
-.conf-fill-sm { height:100%; border-radius:10px; background:var(--green); }
+/* SECTION */
+.sek { margin-bottom: 14px; }
+.sek-title { font-size: 12pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 8px; }
 
-.fab-edit { position:absolute; bottom:28px; left:28px; display:flex; align-items:center; gap:8px; padding:11px 20px; background:#fff; color:var(--green); border:1.5px solid var(--green-border); border-radius:40px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.08); z-index:50; text-decoration:none; }
-.fab-edit:hover { background:var(--green-light); transform:translateY(-2px); }
+/* SWOT */
+.swot-item { margin-bottom: 12px; }
+.swot-head { font-weight: bold; font-size: 11.5pt; margin-bottom: 2px; }
+.swot-desc { font-style: italic; font-size: 9.5pt; color: #555; margin-bottom: 4px; }
+.swot-list { list-style: disc; padding-left: 22px; font-size: 11.5pt; }
+.swot-list li { margin-bottom: 2px; }
 
-.empty-msg { font-size:12px; color:var(--text-muted); font-style:italic; }
+/* FAKTA */
+.fakta-item { margin-bottom: 12px; }
+.fakta-head { font-weight: bold; font-size: 11.5pt; margin-bottom: 3px; }
+.fakta-isi { font-size: 11.5pt; text-align: justify; line-height: 1.8; }
+
+/* REKOMENDASI */
+.rek-item { margin-bottom: 12px; }
+.rek-head { font-weight: bold; font-size: 11.5pt; margin-bottom: 4px; }
+.rek-list { list-style: disc; padding-left: 22px; font-size: 11.5pt; }
+.rek-list li { margin-bottom: 3px; text-align: justify; line-height: 1.7; }
+
+/* EARLY WARNING */
+.ew-list { padding-left: 22px; font-size: 11.5pt; }
+.ew-list li { margin-bottom: 4px; line-height: 1.7; }
+
+/* CATATAN */
+.catatan { border: 2px solid #000; padding: 8px 12px; margin: 12px 0; }
+.catatan-lbl { font-weight: bold; font-size: 10.5pt; text-transform: uppercase; margin-bottom: 2px; }
+.catatan-isi { font-size: 11.5pt; font-style: italic; line-height: 1.7; }
+
+/* PENUTUP */
+.penutup { font-size: 11.5pt; text-align: justify; line-height: 1.8; margin-bottom: 6px; }
+.penutup-bold { font-weight: bold; text-align: center; font-size: 12pt; margin: 14px 0 0; }
+
+/* FOOTER */
+.dok-footer { margin-top: 20px; padding-top: 5px; border-top: 2px solid #000; display: flex; justify-content: space-between; font-size: 9pt; color: #555; }
+
+/* Nomor halaman */
+.page-num { position: absolute; bottom: 26px; right: 38px; font-size: 9pt; color: #777; font-family: 'Times New Roman', Times, serif; }
+
+/* Mini header halaman 2+ */
+.page-mini-hdr { display: flex; justify-content: space-between; font-size: 9.5pt; color: #555; padding-bottom: 7px; border-bottom: 1px solid #000; margin-bottom: 14px; }
+
+/* ── PRINT ── */
+@media print {
+  .sidenav, .topbar, .edit-panel { display: none !important; }
+  html, body { height: auto; overflow: visible; display: block; background: #fff; }
+  .main { overflow: visible; display: block; }
+  .content { overflow: visible; padding: 0; background: #fff; }
+  .dok-wrap { max-width: 100%; }
+  .dok-page {
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    padding: 2cm 1.5cm 1.5cm 2.5cm;
+    box-shadow: none;
+    border: none;
+    page-break-after: always;
+  }
+  .dok-page:last-child { page-break-after: auto; }
+  .fakta-item, .rek-item, .swot-item, .catatan { page-break-inside: avoid; }
+  @page { size: A4 portrait; margin: 0; }
+}
 </style>
 </head>
 <body>
@@ -171,280 +197,267 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg-3); color:var(--tex
     <div class="brand-logo">SEPIA</div>
     <div class="brand-sub">Sistem Analitik Intelijen</div>
   </div>
-  <div class="sidenav-section">
-    <div class="sidenav-label">Menu Utama</div>
+<div class="sidenav-section">
     <a class="nav-item" href="{{ route('dashboard') }}"><div class="nav-icon">📊</div><div class="nav-item-text">Dashboard</div></a>
     <a class="nav-item active" href="{{ route('datapool.index') }}"><div class="nav-icon">📋</div><div class="nav-item-text">RPI</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🗄️</div><div class="nav-item-text">Data Pool</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🎨</div><div class="nav-item-text">Personalisasi</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">📅</div><div class="nav-item-text">Daily Report</div><span class="nav-item-badge alert">!</span></a>
-  </div>
-  <div class="sidenav-divider"></div>
-  <div class="sidenav-section">
-    <div class="sidenav-label">Sistem</div>
-    <a class="nav-item" href="#"><div class="nav-icon">⚙️</div><div class="nav-item-text">Settings</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🔒</div><div class="nav-item-text">Akses & Izin</div></a>
-  </div>
-  <div class="sidenav-bottom">
-    <div class="user-row">
-      <div class="user-avatar">CR</div>
-      <div><div class="user-name">C. Rasyid</div><div class="user-role">Analis Senior</div></div>
-    </div>
   </div>
 </nav>
 
 <div class="main">
-
-<div class="topbar">
+  <div class="topbar">
     <div class="topbar-left">
-      <a class="back-btn" href="{{ route('datapool.show', $folder) }}">← Kembali</a>
-      <div class="topbar-divider"></div>
-      <div class="page-title">Hasil Analisis</div>
+      <a href="{{ route('datapool.show', $folder) }}" style="color:var(--text-muted);font-size:13px;text-decoration:none">← Kembali</a>
+      <div style="width:1px;height:18px;background:var(--border)"></div>
+      <div style="font-size:14px;font-weight:700">Laporan Intelijen Situasional</div>
     </div>
     <div class="topbar-right">
-      <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--green-light);border:1px solid var(--green-border);border-radius:20px;font-size:11px;font-weight:500;color:var(--green)">
-        <div style="width:7px;height:7px;border-radius:50%;background:var(--green-2)"></div>
-        Input Manual · {{ $analisis->jumlah_sumber }} sumber
-      </div>
-      <a href="{{ route('distribusi.show', [$folder, $analisis]) }}" class="tb-btn" style="background:#fffbeb;color:#b45309;border-color:#fde68a;">
-        📤 Distribusi
-      </a>
-      <button class="tb-btn">⬇ Ekspor PDF</button>
-    </div>
-</div>
-
-
-  
-  <div class="result-banner">
-    <div class="banner-left">
-      <div class="banner-emoji">{{ $folder->emoji }}</div>
-      <div>
-        <div class="banner-title">{{ $analisis->judul }}</div>
-        <div class="banner-meta">
-          <span>{{ $analisis->tanggal_analisis ? \Carbon\Carbon::parse($analisis->tanggal_analisis)->format('d M Y, H.i') . ' WIB' : '-' }}</span>
-          <span class="banner-dot"></span>
-          <span>{{ $analisis->jumlah_sumber }} sumber · {{ $analisis->aktor->count() }} aktor</span>
-          <span class="banner-dot"></span>
-          <span>{{ $analisis->model_versi }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="banner-right">
-      <div class="score-pill">
-        <div>
-          <div class="score-label">Tingkat Risiko</div>
-          <div style="display:flex;align-items:flex-end;gap:3px">
-            <div class="score-val">{{ $analisis->tingkat_risiko }}</div>
-            <div class="score-unit">/ 10</div>
-          </div>
-        </div>
-      </div>
-      @if($analisis->prediksi_vonis)
-      <div class="score-pill">
-        <div>
-          <div class="score-label">Prediksi Vonis</div>
-          <div style="display:flex;align-items:flex-end;gap:3px">
-            <div class="score-val">{{ $analisis->prediksi_vonis }}</div>
-          </div>
-        </div>
-      </div>
-      @endif
+      <a href="{{ route('distribusi.show', [$folder, $analisis]) }}" class="tb-btn warning">📤 Distribusi</a>
+      <a href="{{ route('analisis.export.docx', [$folder, $analisis]) }}" class="tb-btn">📄 Ekspor Word</a>
+      <button class="tb-btn primary" onclick="window.print()">🖨 Cetak</button>
     </div>
   </div>
 
-  <div class="content-scroll">
+  <div class="content">
 
-    <div>
-      <div class="sec-title">Analisis SWOT</div>
-      @php
-        $swotGroups = $analisis->swotItems->groupBy('tipe');
-        $swotMeta = ['S'=>['Strengths','Kekuatan'],'W'=>['Weaknesses','Kelemahan'],'O'=>['Opportunities','Peluang'],'T'=>['Threats','Ancaman']];
-      @endphp
-      <div class="swot-grid">
-        @foreach($swotMeta as $tipe => [$j, $s])
-        <div class="swot-card {{ $tipe }}">
-          <div class="swot-header">
-            <div class="swot-letter">{{ $tipe }}</div>
-            <div>
-              <div class="swot-card-title">{{ $j }} — {{ $s }}</div>
-              <div class="swot-card-sub">{{ isset($swotGroups[$tipe]) ? $swotGroups[$tipe]->count() : 0 }} poin</div>
-            </div>
-          </div>
-          <div class="swot-items">
+    {{-- EDIT PANEL --}}
+    <div class="edit-panel" id="edit-panel">
+      <div class="edit-panel-title">✏️ Edit Informasi Laporan</div>
+      <div class="edit-grid">
+        <div class="edit-field">
+          <label>Perihal</label>
+          <input type="text" id="edit-perihal" value="{{ $perihal }}" />
+        </div>
+        <div class="edit-field">
+          <label>Wilayah</label>
+          <input type="text" id="edit-wilayah" value="{{ $wilayah }}" />
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="tb-btn" onclick="toggleEdit()">Batal</button>
+        <button class="save-btn" onclick="simpanInfo()">💾 Simpan</button>
+      </div>
+    </div>
+
+    <div class="dok-wrap">
+
+    {{-- ══ HALAMAN 1 ══ --}}
+    <div class="dok-page">
+
+      {{-- KOP --}}
+      <div class="kop">
+        <h1>Laporan Intelijen Situasional</h1>
+        <h2>Sistem Analitik Intelijen Dan Hukum - SEPIA</h2>
+        <p>Dokumen Resmi - Bersifat {{ $klasifikasi }}</p>
+      </div>
+      <div class="line-full"></div>
+
+      {{-- KLASIFIKASI --}}
+      <div class="klas"><span>KLASIFIKASI: {{ $klasifikasi }}</span></div>
+
+      {{-- INFO --}}
+      <table class="info-tbl">
+        <tr>
+          <td class="ik">Perihal</td>
+          <td class="is">:</td>
+          <td class="iv" id="dok-perihal">{{ $perihal }}</td>
+        </tr>
+        <tr>
+          <td class="ik">Wilayah</td>
+          <td class="is">:</td>
+          <td class="iv" id="dok-wilayah">{{ $wilayah }}</td>
+        </tr>
+        <tr>
+          <td class="ik">Tanggal Analisis</td>
+          <td class="is">:</td>
+          <td class="iv">{{ $analisis->tanggal_analisis ? strtoupper(\Carbon\Carbon::parse($analisis->tanggal_analisis)->format('d F Y')) : strtoupper(now()->format('d F Y')) }}</td>
+        </tr>
+        <tr>
+          <td class="ik">Tingkat Situasi</td>
+          <td class="is">:</td>
+          <td class="iv"><strong style="color:{{ $statusColor }}">{{ $statusWaspada }}</strong> (Risiko {{ $analisis->tingkat_risiko }}/10)</td>
+        </tr>
+      </table>
+
+      <div class="line-thin"></div>
+
+      {{-- RINGKASAN EKSEKUTIF --}}
+      @if($analisis->ringkasan_eksekutif)
+      <p class="ringkasan">{{ $analisis->ringkasan_eksekutif }}</p>
+      <div class="line-thin"></div>
+      @endif
+
+      {{-- SWOT --}}
+      <div class="sek">
+        <div class="sek-title">Analisis SWOT</div>
+
+        @php
+          $swotMeta = [
+            'S' => ['S - Strengths (Kekuatan)',   'Faktor kekuatan internal yang mendukung penanganan.'],
+            'W' => ['W - Weaknesses (Kelemahan)',  'Faktor kelemahan internal yang menghambat penanganan.'],
+            'O' => ['O - Opportunities (Peluang)', 'Faktor peluang eksternal yang dapat dimanfaatkan.'],
+            'T' => ['T - Threats (Ancaman)',       'Faktor ancaman eksternal yang perlu diwaspadai.'],
+          ];
+        @endphp
+
+        @foreach($swotMeta as $tipe => [$label, $desc])
+        <div class="swot-item">
+          <div class="swot-head">{{ $label }}</div>
+          <div class="swot-desc">{{ $desc }}</div>
+          <ul class="swot-list">
             @forelse($swotGroups->get($tipe, collect()) as $item)
-            <div class="swot-item"><div class="swot-item-dot"></div><span>{{ $item->isi }}</span></div>
+            <li>{{ $item->isi }}</li>
             @empty
-            <div class="empty-msg">Tidak ada poin.</div>
+            <li style="color:#999;font-style:italic">Tidak ada poin.</li>
             @endforelse
-          </div>
+          </ul>
         </div>
         @endforeach
       </div>
-    </div>
 
-    <div>
-      <div class="sec-title">Analisis Lanjutan</div>
-      <div class="three-col">
+      <div class="line-thin"></div>
 
-        <div class="analysis-card">
-          <div class="analysis-card-head">
-            <div class="analysis-card-icon" style="background:#fef2f2">⚠️</div>
-            <div>
-              <div class="analysis-card-label">Penilaian Risiko</div>
-              <div class="analysis-card-sublabel">{{ $analisis->riskItems->count() }} indikator</div>
-            </div>
+      {{-- I. FAKTA-FAKTA --}}
+      <div class="sek">
+        <div class="sek-title">I. Fakta-Fakta</div>
+        @if(!empty($faktaFakta))
+          @foreach($faktaFakta as $fakta)
+          <div class="fakta-item">
+            <div class="fakta-head">{{ $fakta['huruf'] ?? '' }}. {{ $fakta['judul'] ?? '' }}</div>
+            <div class="fakta-isi">{{ $fakta['isi'] ?? '' }}</div>
           </div>
-          <div class="analysis-card-body">
-            @forelse($analisis->riskItems as $risk)
-            <div class="risk-meter" style="{{ $loop->last ? 'margin-bottom:0' : '' }}">
-              <div class="risk-label-row">
-                <span class="risk-name">{{ $risk->label }}</span>
-                <span class="risk-pct" style="color:{{ $risk->warna }}">{{ $risk->keterangan ?? $risk->nilai . '%' }}</span>
-              </div>
-              <div class="risk-bar"><div class="risk-fill" style="width:{{ $risk->nilai }}%;background:{{ $risk->warna }}"></div></div>
-            </div>
-            @empty
-            <div class="empty-msg">Belum ada data risiko.</div>
-            @endforelse
+          @endforeach
+        @else
+          @foreach($analisis->timeline as $tl)
+          <div class="fakta-item">
+            <div class="fakta-head">{{ $tl->tanggal }}</div>
+            <div class="fakta-isi">{{ $tl->keterangan }}</div>
           </div>
-        </div>
-
-        <div class="analysis-card">
-          <div class="analysis-card-head">
-            <div class="analysis-card-icon" style="background:#eff6ff">📅</div>
-            <div>
-              <div class="analysis-card-label">Kronologi Kasus</div>
-              <div class="analysis-card-sublabel">{{ $analisis->timeline->count() }} kejadian</div>
-            </div>
-          </div>
-          <div class="analysis-card-body">
-            <div class="timeline">
-              @forelse($analisis->timeline as $tl)
-              <div class="tl-item">
-                <div class="tl-left"><div class="tl-dot" style="color:{{ $tl->warna_dot }}"></div><div class="tl-line"></div></div>
-                <div>
-                  <div class="tl-date">{{ $tl->tanggal }}</div>
-                  <div class="tl-text">{{ $tl->keterangan }}</div>
-                </div>
-              </div>
-              @empty
-              <div class="empty-msg">Belum ada kronologi.</div>
-              @endforelse
-            </div>
-          </div>
-        </div>
-
-        <div class="analysis-card">
-          <div class="analysis-card-head">
-            <div class="analysis-card-icon" style="background:#fdf4ff">👥</div>
-            <div>
-              <div class="analysis-card-label">Peta Aktor</div>
-              <div class="analysis-card-sublabel">{{ $analisis->aktor->count() }} pihak</div>
-            </div>
-          </div>
-          <div class="analysis-card-body">
-            <div class="actor-list">
-              @forelse($analisis->aktor as $aktor)
-              <div class="actor-item">
-                <div class="actor-avatar" style="background:{{ $aktor->warna_avatar }}">{{ $aktor->inisial }}</div>
-                <div>
-                  <div class="actor-name">{{ $aktor->nama }}</div>
-                  <div class="actor-role">{{ $aktor->peran }}</div>
-                </div>
-                <div class="actor-status status-{{ $aktor->status }}">{{ ucfirst($aktor->status) }}</div>
-              </div>
-              @empty
-              <div class="empty-msg">Belum ada aktor.</div>
-              @endforelse
-            </div>
-          </div>
-        </div>
-
+          @endforeach
+        @endif
       </div>
-    </div>
 
-    <div>
-      <div class="sec-title">Rekomendasi & Kepercayaan Analisis</div>
-      <div class="two-col">
+      <div class="page-num">Halaman 1</div>
+    </div>{{-- end page 1 --}}
 
-        <div class="analysis-card">
-          <div class="analysis-card-head">
-            <div class="analysis-card-icon" style="background:#f0f7f2">✅</div>
-            <div>
-              <div class="analysis-card-label">Rekomendasi Tindak Lanjut</div>
-              <div class="analysis-card-sublabel">{{ $analisis->rekomendasi->count() }} rekomendasi</div>
-            </div>
-          </div>
-          <div class="analysis-card-body">
-            <div class="rekomendasi-list">
-              @forelse($analisis->rekomendasi as $reko)
-              <div class="reko-item">
-                <div class="reko-num">{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</div>
-                <div>
-                  <div class="reko-title">{{ $reko->judul }}</div>
-                  <div class="reko-desc">{{ $reko->deskripsi }}</div>
-                  <span class="reko-priority prio-{{ $reko->prioritas }}">Prioritas {{ ucfirst($reko->prioritas) }}</span>
-                </div>
-              </div>
-              @empty
-              <div class="empty-msg">Belum ada rekomendasi.</div>
-              @endforelse
-            </div>
-          </div>
-        </div>
+    {{-- ══ HALAMAN 2 ══ --}}
+    <div class="dok-page">
 
-        <div class="analysis-card">
-          <div class="analysis-card-head">
-            <div class="analysis-card-icon" style="background:#fefce8">📊</div>
-            <div>
-              <div class="analysis-card-label">Kepercayaan Analisis</div>
-              <div class="analysis-card-sublabel">Validasi kualitas data</div>
-            </div>
-          </div>
-          <div class="analysis-card-body">
-            @if($analisis->confidence)
-            @php
-              $conf = $analisis->confidence;
-              $avg = $analisis->avgConfidence();
-              $circumference = 283;
-              $offset = $circumference - ($avg / 100 * $circumference);
-            @endphp
-            <div class="confidence-wrap">
-              <div class="conf-ring">
-                <svg viewBox="0 0 100 100" width="110" height="110">
-                  <circle fill="none" stroke="var(--bg-3)" stroke-width="10" cx="50" cy="50" r="45"/>
-                  <circle fill="none" stroke="var(--green)" stroke-width="10" stroke-linecap="round"
-                    cx="50" cy="50" r="45"
-                    stroke-dasharray="{{ $circumference }}"
-                    stroke-dashoffset="{{ $offset }}"/>
-                </svg>
-                <div class="conf-center">
-                  <div class="conf-pct">{{ $avg }}%</div>
-                  <div class="conf-sub">Akurasi</div>
-                </div>
-              </div>
-              <div class="conf-labels">
-                @foreach([['Kelengkapan data', $conf->kelengkapan_data],['Konsistensi sumber', $conf->konsistensi_sumber],['Kualitas dokumen', $conf->kualitas_dokumen],['Kedalaman analisis', $conf->kedalaman_analisis]] as [$l, $v])
-                <div>
-                  <div class="conf-label-row"><span class="conf-label-name">{{ $l }}</span><span class="conf-label-val">{{ $v }}%</span></div>
-                  <div class="conf-bar-sm"><div class="conf-fill-sm" style="width:{{ $v }}%"></div></div>
-                </div>
-                @endforeach
-              </div>
-            </div>
-            @else
-            <div class="empty-msg" style="text-align:center;padding:20px 0">Belum ada data kepercayaan.</div>
-            @endif
-          </div>
-        </div>
-
+      <div class="page-mini-hdr">
+        <span><strong>{{ $perihal }}</strong></span>
+        <span style="font-weight:bold;letter-spacing:0.1em">{{ $klasifikasi }}</span>
+        <span>Lanjutan — Halaman 2</span>
       </div>
-    </div>
 
+      {{-- II. ANALISIS INTELIJEN --}}
+      <div class="sek">
+        <div class="sek-title">II. Analisis Intelijen</div>
+        @if($analisis->analisis_intelijen ?? $analisis->ringkasan_intelijen)
+        <p class="fakta-isi">{{ $analisis->analisis_intelijen ?? $analisis->ringkasan_intelijen }}</p>
+        @elseif($analisis->deskripsi)
+        <p class="fakta-isi">{{ $analisis->deskripsi }}</p>
+        @endif
+        @if($analisis->interpretasi)
+        <p class="fakta-isi" style="margin-top:8px">{{ $analisis->interpretasi }}</p>
+        @endif
+      </div>
+
+      {{-- III. REKOMENDASI --}}
+      @if(!empty($jabatanRek))
+      <div class="sek">
+        <div class="sek-title">III. Rekomendasi</div>
+        @foreach($jabatanRek as $key => $jabatan)
+        <div class="rek-item">
+          <div class="rek-head">{{ $loop->iteration }}. {{ $jabatan['nama_jabatan'] ?? $key }}</div>
+          <ul class="rek-list">
+            @foreach($jabatan['poin'] ?? [] as $poin)
+            <li>{{ $poin }}</li>
+            @endforeach
+          </ul>
+        </div>
+        @endforeach
+      </div>
+      @elseif($analisis->rekomendasi->isNotEmpty())
+      <div class="sek">
+        <div class="sek-title">III. Rekomendasi</div>
+        @php $grouped = $analisis->rekomendasi->groupBy('judul'); @endphp
+        @foreach($grouped as $jabatan => $poin)
+        <div class="rek-item">
+          <div class="rek-head">{{ $loop->iteration }}. {{ $jabatan }}</div>
+          <ul class="rek-list">
+            @foreach($poin as $p)
+            <li>{{ $p->deskripsi }}</li>
+            @endforeach
+          </ul>
+        </div>
+        @endforeach
+      </div>
+      @endif
+
+      {{-- IV. EARLY WARNING --}}
+      @if(!empty($earlyWarning))
+      <div class="sek">
+        <div class="sek-title">IV. Indikator Peringatan Dini</div>
+        <ol class="ew-list">
+          @foreach($earlyWarning as $ew)
+          <li>{{ $ew }}</li>
+          @endforeach
+        </ol>
+      </div>
+      @endif
+
+      {{-- CATATAN ANALIS --}}
+      @if($analisis->catatan_analis)
+      <div class="catatan">
+        <div class="catatan-lbl">Catatan Perwira Analis:</div>
+        <div class="catatan-isi">"{{ $analisis->catatan_analis }}"</div>
+      </div>
+      @endif
+
+      {{-- PENUTUP --}}
+      <div style="margin-top:16px">
+        <p class="penutup">Demikian laporan situasional ini disusun berdasarkan hasil monitoring dan analisis data di wilayah <strong>{{ $wilayah }}</strong>. Ke depan situasi diperkirakan {{ $risikoVal >= 7 ? 'berpotensi memanas dan memerlukan penanganan segera' : ($risikoVal >= 5 ? 'tetap dinamis dan memerlukan pemantauan intensif' : 'tetap kondusif apabila rekomendasi di atas dilaksanakan dengan baik') }}.</p>
+        <p class="penutup-bold">DEMIKIAN LAPORAN INI DIBUAT UNTUK DITINDAKLANJUTI.</p>
+      </div>
+
+      {{-- FOOTER --}}
+      <div class="dok-footer">
+        <span>{{ $klasifikasi }}</span>
+        <span>SEPIA - Sistem Analitik Intelijen Dan Hukum</span>
+        <span>{{ now()->format('d M Y') }}</span>
+      </div>
+
+      <div class="page-num">Halaman 2</div>
+    </div>{{-- end page 2 --}}
+
+    </div>{{-- end dok-wrap --}}
   </div>
-
-  <a class="fab-edit" href="{{ route('datapool.show', $folder) }}">← Kembali ke Folder</a>
-
 </div>
+
+<script>
+function toggleEdit() {
+  document.getElementById('edit-panel').classList.toggle('open');
+}
+function simpanInfo() {
+  const perihal = document.getElementById('edit-perihal').value;
+  const wilayah = document.getElementById('edit-wilayah').value;
+  fetch('{{ route("analisis.update", [$folder, $analisis]) }}', {
+    method: 'POST',
+    headers: {
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ perihal, wilayah, _method: 'PATCH' }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById('dok-perihal').textContent = perihal;
+      document.getElementById('dok-wilayah').textContent = wilayah;
+      toggleEdit();
+    } else { alert('Gagal menyimpan'); }
+  })
+  .catch(() => alert('Error koneksi'));
+}
+</script>
 </body>
 </html>

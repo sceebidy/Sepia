@@ -151,38 +151,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg-tertiary); color
     <div class="brand-sub">Sistem Analitik Intelijen</div>
   </div>
   <div class="sidenav-section">
-    <div class="sidenav-label">Menu Utama</div>
-    <a class="nav-item" href="{{ route('dashboard') }}">
-      <div class="nav-icon">📊</div><div class="nav-item-text">Dashboard</div>
-    </a>
-    <a class="nav-item active" href="{{ route('datapool.index') }}">
-      <div class="nav-icon">📋</div><div class="nav-item-text">RPI</div>
-    </a>
-    <a class="nav-item" href="#">
-      <div class="nav-icon">🗄️</div><div class="nav-item-text">Data Pool</div>
-    </a>
-    <a class="nav-item" href="#">
-      <div class="nav-icon">🎨</div><div class="nav-item-text">Personalisasi</div>
-    </a>
-    <a class="nav-item" href="#">
-      <div class="nav-icon">📅</div><div class="nav-item-text">Daily Report</div>
-      <span class="nav-item-badge alert">!</span>
-    </a>
-  </div>
-  <div class="sidenav-divider"></div>
-  <div class="sidenav-section">
-    <div class="sidenav-label">Sistem</div>
-    <a class="nav-item" href="#"><div class="nav-icon">⚙️</div><div class="nav-item-text">Settings</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🔒</div><div class="nav-item-text">Akses & Izin</div></a>
-  </div>
-  <div class="sidenav-bottom">
-    <div class="user-row">
-      <div class="user-avatar">CR</div>
-      <div>
-        <div class="user-name">C. Rasyid</div>
-        <div class="user-role">Analis Senior</div>
-      </div>
-    </div>
+    <a class="nav-item" href="{{ route('dashboard') }}"><div class="nav-icon">📊</div><div class="nav-item-text">Dashboard</div></a>
+    <a class="nav-item active" href="{{ route('datapool.index') }}"><div class="nav-icon">📋</div><div class="nav-item-text">RPI</div></a>
   </div>
 </nav>
 

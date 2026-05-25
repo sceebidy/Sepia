@@ -153,25 +153,10 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
     <div class="brand-sub">Sistem Analitik Intelijen</div>
   </div>
   <div class="sidenav-section">
-    <div class="sidenav-label">Menu Utama</div>
     <a class="nav-item" href="{{ route('dashboard') }}"><div class="nav-icon">📊</div><div class="nav-item-text">Dashboard</div></a>
     <a class="nav-item active" href="{{ route('datapool.index') }}"><div class="nav-icon">📋</div><div class="nav-item-text">RPI</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🗄️</div><div class="nav-item-text">Data Pool</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🎨</div><div class="nav-item-text">Personalisasi</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">📅</div><div class="nav-item-text">Daily Report</div><span class="nav-badge alert">!</span></a>
   </div>
-  <div class="sidenav-divider"></div>
-  <div class="sidenav-section">
-    <div class="sidenav-label">Sistem</div>
-    <a class="nav-item" href="#"><div class="nav-icon">⚙️</div><div class="nav-item-text">Settings</div></a>
-    <a class="nav-item" href="#"><div class="nav-icon">🔒</div><div class="nav-item-text">Akses & Izin</div></a>
-  </div>
-  <div class="sidenav-bottom">
-    <div class="user-row">
-      <div class="user-avatar">CR</div>
-      <div><div class="user-name">C. Rasyid</div><div class="user-role">Analis Senior</div></div>
-    </div>
-  </div>
+</nav>
 </nav>
 
 <div class="main">
@@ -183,7 +168,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
     <div class="topbar-right">
       <a href="{{ route('datapool.show', $laporan->folder) }}" class="tb-btn">📁 Buka Folder</a>
       @if($laporan->analisis)
-      <a href="{{ route('analisis.show', [$laporan->folder, $laporan->analisis]) }}" class="tb-btn">⚡ Lihat Analisis</a>
+      <a href="{{ route('analisis.show', [$laporan->folder, $laporan->analisis]) }}" class="tb-btn">⚡ Lihat Dokumen</a>
       @endif
       <button class="tb-btn primary" onclick="window.print()">🖨 Cetak</button>
     </div>
@@ -365,27 +350,30 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
     @endif
 
     {{-- ══ REKOMENDASI ══ --}}
-    {{-- kolom: judul, deskripsi, prioritas --}}
-    @if($rekomendasi->isNotEmpty())
-    <div>
-      <div class="section-label">Rekomendasi Tindak Lanjut</div>
-      <div class="rek-list">
-        @foreach($rekomendasi as $i => $rek)
-        @php $prio = $rek->prioritas ?? 'sedang'; @endphp
-        <div class="rek-row">
-          <div class="rek-num">{{ $i + 1 }}</div>
-          <div class="rek-body">
-            <div class="rek-judul">{{ $rek->judul }}</div>
-            @if($rek->deskripsi)
-            <div class="rek-desc">{{ $rek->deskripsi }}</div>
-            @endif
-          </div>
-          <span class="rek-prioritas prio-{{ $prio }}">{{ strtoupper($prio) }}</span>
+@if($rekomendasi->isNotEmpty())
+<div>
+  <div class="section-label">Rekomendasi Tindak Lanjut</div>
+  <div class="rek-list">
+    @php $grouped = $rekomendasi->groupBy('judul'); @endphp
+    @foreach($grouped as $jabatan => $poinList)
+    <div style="background:var(--bg-2);border:1px solid var(--border-light);border-radius:10px;overflow:hidden;margin-bottom:4px">
+      <div style="padding:11px 16px;background:#fff;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:10px">
+        <div class="rek-num">{{ $loop->iteration }}</div>
+        <div style="font-size:13px;font-weight:600">{{ $jabatan }}</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;flex-direction:column;gap:6px">
+        @foreach($poinList as $rek)
+        <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-muted);line-height:1.6">
+          <span style="color:var(--green);font-weight:700;margin-top:1px">•</span>
+          <span>{{ $rek->deskripsi }}</span>
         </div>
         @endforeach
       </div>
     </div>
-    @endif
+    @endforeach
+  </div>
+</div>
+@endif
 
     {{-- ══ CONFIDENCE ══ --}}
     @if($confidence)

@@ -46,7 +46,7 @@ class FolderController extends Controller
             'emoji'        => $validated['emoji'] ?? '📁',
             'warna_stripe' => $validated['warna_stripe'] ?? '#1a5c2e',
             'status'       => $validated['status'] ?? 'baru',
-            'dibuat_oleh'  => 'C. Rasyid',
+            'dibuat_oleh'  => 'Analisis Sepia',
         ]);
 
         return redirect()->route('datapool.index')
@@ -158,7 +158,7 @@ class FolderController extends Controller
             'tipe'             => $tipe,
             'judul'            => $validated['judul'],
             'konten'           => $konten,
-            'ditambahkan_oleh' => 'C. Rasyid',
+            'ditambahkan_oleh' => 'Analisis Sepia',
         ];
 
         if ($tipe === 'file' && $request->hasFile('file') && $request->file('file')->isValid()) {
