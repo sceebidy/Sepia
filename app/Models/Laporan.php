@@ -1,15 +1,15 @@
 <?php
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Model;
 
 class Laporan extends Model
 {
     protected $table = 'laporan';
-
     protected $fillable = [
         'judul',
+        'ringkasan',
+        'kategori',
+        'status',
         'nomor_laporan',
         'tingkat_risiko',
         'prediksi_vonis',
@@ -18,8 +18,19 @@ class Laporan extends Model
         'jumlah_rekomendasi',
         'dibuat_oleh',
         'file_path',
+        'analisis_id',
+        'folder_id',
     ];
 
+    public function analisis()
+    {
+        return $this->belongsTo(AnalisisKasus::class, 'analisis_id');
+    }
+
+    public function folder()
+    {
+        return $this->belongsTo(Folder::class, 'folder_id');
+    }
 
     public function nomorFormatted()
     {

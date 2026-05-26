@@ -162,8 +162,11 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
 <div class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <a href="{{ route('laporan.index') }}" style="color:var(--text-muted);font-size:13px;text-decoration:none">← Semua Laporan</a>
-      <div class="page-title">{{ $laporan->nomorFormatted() }}</div>
+@if($analisis && $analisis->folder_id)
+<a href="{{ route('datapool.show', $analisis->folder_id) }}" style="color:var(--text-muted);font-size:13px;text-decoration:none">← Kembali ke Folder</a>
+@else
+<a href="{{ route('datapool.index') }}" style="color:var(--text-muted);font-size:13px;text-decoration:none">← Kembali</a>
+@endif      <div class="page-title">{{ $laporan->nomorFormatted() }}</div>
     </div>
     <div class="topbar-right">
       <a href="{{ route('datapool.show', $analisis ? $analisis->folder_id : 1) }}" class="tb-btn">📁 Buka Folder</a>
@@ -244,8 +247,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
       </div>
     </div>
 
-    @if($laporan->analisis)
-    @php $analisis = $laporan->analisis; @endphp
+@if($analisis)
 
     {{-- ══ SWOT ══ --}}
     {{-- tipe: S/W/O/T, isi: konten --}}
