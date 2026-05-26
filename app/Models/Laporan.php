@@ -9,8 +9,6 @@ class Laporan extends Model
     protected $table = 'laporan';
 
     protected $fillable = [
-        'folder_id',
-        'analisis_id',
         'judul',
         'nomor_laporan',
         'tingkat_risiko',
@@ -22,15 +20,6 @@ class Laporan extends Model
         'file_path',
     ];
 
-    public function folder()
-    {
-        return $this->belongsTo(Folder::class, 'folder_id');
-    }
-
-    public function analisis()
-    {
-        return $this->belongsTo(AnalisisKasus::class, 'analisis_id');
-    }
 
     public function nomorFormatted()
     {

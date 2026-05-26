@@ -13,21 +13,39 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // ── DATA ACUAN UTAMA (Hanya ambil analisis yang foldernya MEMANG masih ada)
+        $activeAnalisisIds = AnalisisKasus::whereHas('folder')->pluck('id')->toArray();
+
         // ── STAT CARDS
-        $totalIsu      = Issue::aktif()->count();
-        $risikoTinggi  = Issue::aktif()->risiko('tinggi')->count();
-        $totalLaporan  = Laporan::whereNotNull('analisis_id')->count() + Laporan::whereNull('analisis_id')->count();
-        $totalAnalisis = AnalisisKasus::count();
+        // FIX: Hanya hitung isu aktif yang folders-nya masih ada
+        $totalIsu      = Issue::aktif()->whereHas('folder')->count();
+        $risikoTinggi  = Issue::aktif()->whereHas('folder')->risiko('tinggi')->count();
         $totalTokoh    = Tokoh::aktif()->count();
+
+        // FIX: Hitung analisis yang foldernya aktif
+        $totalAnalisis = count($activeAnalisisIds);
+
+        // FIX: Hitung laporan menggunakan pencarian string "(#ID)" berdasarkan analisis aktif
+        $totalLaporan = 0;
+        if (!empty($activeAnalisisIds)) {
+            $totalLaporan = Laporan::where(function($query) use ($activeAnalisisIds) {
+                foreach ($activeAnalisisIds as $id) {
+                    $query->orWhere('judul', 'LIKE', "%(#{$id})");
+                }
+            })->count();
+        }
 
         // ── DATA PER KATEGORI
         $kategoriList = ['ideologi', 'politik', 'ekonomi', 'sosbud', 'hankam'];
         $kategoriData = [];
 
         foreach ($kategoriList as $kat) {
-            $totalKat = Issue::aktif()->kategori($kat)->count();
+            // FIX: Tambahkan whereHas('folder')
+            $totalKat = Issue::aktif()->whereHas('folder')->kategori($kat)->count();
 
+            // FIX: Tambahkan whereHas('folder')
             $subKatCounts = Issue::aktif()
+                ->whereHas('folder')
                 ->kategori($kat)
                 ->select('sub_kategori', DB::raw('count(*) as total'))
                 ->groupBy('sub_kategori')
@@ -39,20 +57,26 @@ class DashboardController extends Controller
                 $subKatPersentase[$sub] = $totalKat > 0 ? round(($count / $totalKat) * 100) : 0;
             }
 
+            // FIX: Tambahkan whereHas('folder')
             $recentIssues = Issue::aktif()
+                ->whereHas('folder')
                 ->kategori($kat)
                 ->orderBy('created_at', 'desc')
                 ->limit(2)
                 ->get(['judul', 'created_at']);
 
+            // FIX: Tambahkan whereHas('folder')
             $mingguIni = Issue::aktif()
+                ->whereHas('folder')
                 ->kategori($kat)
                 ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
                 ->count();
 
             $totalAktor = Tokoh::aktif()->where('kategori', $kat)->count();
 
+            // FIX: Tambahkan whereHas('folder')
             $risikoKat = Issue::aktif()
+                ->whereHas('folder')
                 ->kategori($kat)
                 ->select('risiko', DB::raw('count(*) as total'))
                 ->groupBy('risiko')
@@ -75,7 +99,8 @@ class DashboardController extends Controller
             $trend = [];
             for ($i = 6; $i >= 0; $i--) {
                 $tanggal = Carbon::now()->subDays($i)->toDateString();
-                $trend[] = Issue::aktif()->kategori($kat)->whereDate('created_at', $tanggal)->count();
+                // FIX: Tambahkan whereHas('folder') agar grafik ikut bersih/0 jika folder dihapus
+                $trend[] = Issue::aktif()->whereHas('folder')->kategori($kat)->whereDate('created_at', $tanggal)->count();
             }
             $trendData[$kat] = $trend;
         }
@@ -88,25 +113,34 @@ class DashboardController extends Controller
             ->get(['nama', 'inisial', 'kategori', 'peran', 'wilayah', 'risiko']);
 
         // ── RIWAYAT LAPORAN (dari RPI)
-        $riwayatLaporan = Laporan::with('folder')
-            ->whereNotNull('analisis_id')
+        if (!empty($activeAnalisisIds)) {
+            $riwayatLaporan = Laporan::where(function($query) use ($activeAnalisisIds) {
+                foreach ($activeAnalisisIds as $id) {
+                    $query->orWhere('judul', 'LIKE', "%(#{$id})");
+                }
+            })
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
+        } else {
+            $riwayatLaporan = collect();
+        }
 
         // ── GRAFIK ANALISIS RPI (7 hari terakhir)
         $analisisTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $tanggal = Carbon::now()->subDays($i)->toDateString();
-            $analisisTrend[] = AnalisisKasus::whereDate('created_at', $tanggal)->count();
+            $analisisTrend[] = AnalisisKasus::whereHas('folder')
+                ->whereDate('created_at', $tanggal)
+                ->count();
         }
 
         // ── STAT RISIKO DARI RPI
         $rpiStats = [
-            'total'        => AnalisisKasus::count(),
-            'risiko_tinggi' => AnalisisKasus::where('tingkat_risiko', '>=', 7)->count(),
-            'risiko_sedang' => AnalisisKasus::whereBetween('tingkat_risiko', [4, 6.9])->count(),
-            'risiko_rendah' => AnalisisKasus::where('tingkat_risiko', '<', 4)->count(),
+            'total'         => AnalisisKasus::whereHas('folder')->count(),
+            'risiko_tinggi' => AnalisisKasus::whereHas('folder')->where('tingkat_risiko', '>=', 7)->count(),
+            'risiko_sedang' => AnalisisKasus::whereHas('folder')->whereBetween('tingkat_risiko', [4, 6.9])->count(),
+            'risiko_rendah' => AnalisisKasus::whereHas('folder')->where('tingkat_risiko', '<', 4)->count(),
         ];
 
         return view('dashboard', compact(

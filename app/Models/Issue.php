@@ -61,4 +61,20 @@ class Issue extends Model
     {
         return $this->belongsTo(AiUsage::class, 'ai_usage_id');
     }
+
+    /**
+     * FIX: Relasi Jembatan ke Folder melalui AnalisisKasus
+     * Menghubungkan Issue -> AnalisisKasus (RPI) -> Folder
+     */
+    public function folder()
+    {
+        return $this->hasOneThrough(
+            Folder::class,        // Model tujuan akhir
+            AnalisisKasus::class, // Model jembatan perantara
+            'id',                 // Foreign key di analisis_kasus (analisis_kasus.id)
+            'id',                 // Foreign key di folders (folders.id)
+            'id',                 // Local key di issues (issues.id) - dicocokkan via jembatan relasi internal
+            'folder_id'           // Local key di analisis_kasus (analisis_kasus.folder_id)
+        );
+    }
 }

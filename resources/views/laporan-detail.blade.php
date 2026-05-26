@@ -166,7 +166,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
       <div class="page-title">{{ $laporan->nomorFormatted() }}</div>
     </div>
     <div class="topbar-right">
-      <a href="{{ route('datapool.show', $laporan->folder) }}" class="tb-btn">📁 Buka Folder</a>
+      <a href="{{ route('datapool.show', $analisis ? $analisis->folder_id : 1) }}" class="tb-btn">📁 Buka Folder</a>
       @if($laporan->analisis)
       <a href="{{ route('analisis.show', [$laporan->folder, $laporan->analisis]) }}" class="tb-btn">⚡ Lihat Dokumen</a>
       @endif
@@ -202,7 +202,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
           <div class="header-nomor">{{ $laporan->nomorFormatted() }}</div>
           <div class="header-judul">{{ $laporan->judul }}</div>
           <div class="header-chips">
-            <span class="chip">📁 {{ $laporan->folder->nama ?? '—' }}</span>
+            <span class="chip">📁 {{ $analisis && $analisis->folder_id ? 'Folder Data Pool' : '—' }}</span>
             <span class="chip">👤 {{ $laporan->dibuat_oleh }}</span>
             <span class="chip">📅 {{ $laporan->created_at->format('d M Y, H:i') }}</span>
             @if($laporan->analisis)

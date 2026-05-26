@@ -81,7 +81,7 @@ class GoogleSearchController extends Controller
      * POST /datapool/{folder}/search/simpan
      * Simpan link terpilih ke folder_items
      */
-    public function simpan(Request $request, Folder $folder)
+   public function simpan(Request $request, Folder $folder)
 {
     $links = $request->input('links', []);
     $saved = 0;
@@ -103,10 +103,11 @@ class GoogleSearchController extends Controller
         }
     }
 
-    if ($request->wantsJson() || $request->ajax()) {
-        return response()->json(['success' => true, 'saved' => $saved, 'message' => "{$saved} link ditambahkan"]);
-    }
-
-    return redirect()->route('datapool.show', $folder)->with('success', "{$saved} link berhasil ditambahkan ke folder.");
+    // PAKSA SELALU MENGEMBALIKAN JSON (Hapus pengecekan if sebelumnya)
+    return response()->json([
+        'success' => true, 
+        'saved'   => $saved, 
+        'message' => "{$saved} link ditambahkan"
+    ]);
 }
 }

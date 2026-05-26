@@ -56,13 +56,11 @@ class FolderController extends Controller
     // ──────────────────────────────────────────────
     //  GET /datapool/{folder}
     // ──────────────────────────────────────────────
-   public function show(Folder $folder)
+  public function show(Folder $folder)
 {
     $items    = $folder->items()->latest()->get();
     $analisis = \App\Models\AnalisisKasus::where('folder_id', $folder->id)->latest()->first();
-    $laporan  = $analisis
-        ? \App\Models\Laporan::where('analisis_id', $analisis->id)->first()
-        : null;
+    $laporan  = $items->where('type', 'laporan')->first(); 
 
     return view('folder-detail', compact('folder', 'items', 'analisis', 'laporan'));
 }
@@ -94,25 +92,47 @@ class FolderController extends Controller
             ->with('success', 'Folder "' . $folder->nama . '" berhasil diperbarui.');
     }
 
-    // ──────────────────────────────────────────────
+   // ──────────────────────────────────────────────
     //  DELETE /datapool/{folder}
     // ──────────────────────────────────────────────
     public function destroy(Folder $folder)
     {
         $namaFolder = $folder->nama;
 
-        // Hapus file fisik tiap item
+        // 1. Hapus file fisik tiap item yang ada di dalam folder
         foreach ($folder->items as $item) {
-            if ($item->file_path && Storage::disk('public')->exists($item->file_path)) {
-                Storage::disk('public')->delete($item->file_path);
+            if ($item->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($item->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($item->file_path);
             }
         }
 
+        // 2. Hapus data item folder dari database
         $folder->items()->delete();
+
+        // 3. CARI & HAPUS ANALISIS KASUS YANG TERIKAT DENGAN FOLDER INI
+        // (Menggunakan Model AnalisisKasus karena tabel memiliki 'folder_id')
+        $analisis = \App\Models\AnalisisKasus::where('folder_id', $folder->id)->first();
+
+        if ($analisis) {
+            // 4. HAPUS LAPORAN YANG BERKAITAN (Sesuai Solusi 1: Menggunakan pencarian kecocokan akhiran ID Analisis Kasus)
+            // Pola pencarian: mencari judul laporan yang berakhiran "(#ID_ANALISIS)"
+            \App\Models\Laporan::where('judul', 'LIKE', "%(#{$analisis->id})")->delete();
+
+            // 5. Hapus data pendukung intelijen dari analisis kasus tersebut agar database bersih total
+            \Illuminate\Support\Facades\DB::table('timeline_kasus')->where('analisis_id', $analisis->id)->delete();
+            \Illuminate\Support\Facades\DB::table('rekomendasi_kasus')->where('analisis_id', $analisis->id)->delete();
+            \Illuminate\Support\Facades\DB::table('risk_assessment')->where('analisis_id', $analisis->id)->delete();
+            \Illuminate\Support\Facades\DB::table('confidence_kasus')->where('analisis_id', $analisis->id)->delete();
+
+            // 6. Hapus baris analisis kasus itu sendiri
+            $analisis->delete();
+        }
+
+        // 7. Akhiri dengan menghapus objek foldernya
         $folder->delete();
 
         return redirect()->route('datapool.index')
-            ->with('success', 'Folder "' . $namaFolder . '" dan semua isinya berhasil dihapus.');
+            ->with('success', 'Folder "' . $namaFolder . '" beserta semua data analisis dan laporan terkait berhasil dihapus.');
     }
 
     // ──────────────────────────────────────────────
