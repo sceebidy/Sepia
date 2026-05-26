@@ -40,7 +40,6 @@ class AnalisisController extends Controller
                 RekomendasiKasus::where('analisis_id', $existing->id)->delete();
                 RiskAssessment::where('analisis_id', $existing->id)->delete();
                 ConfidenceKasus::where('analisis_id', $existing->id)->delete();
-                // Hapus issue lama yang terkait
                 Issue::where('sumber', 'SEPIA RPI')->where('judul', $existing->judul)->delete();
                 $existing->delete();
             }
@@ -50,7 +49,7 @@ class AnalisisController extends Controller
                 'judul'            => $folder->nama,
                 'perihal'          => 'Perkembangan Situasi ' . $folder->nama,
                 'periode'          => now()->format('d M Y'),
-                'wilayah'          => $folder->nama,
+                'wilayah'          => 'Kota Medan, Sumatera Utara',
                 'tanggal_analisis' => now(),
                 'tingkat_risiko'   => 0,
                 'jumlah_sumber'    => $items->count(),
@@ -122,8 +121,15 @@ class AnalisisController extends Controller
         $tanggal = now()->translatedFormat('d F Y');
 
         $systemPrompt = <<<PROMPT
-Kamu adalah Perwira Analis Intelijen Senior Indonesia yang berpengalaman membuat laporan intelijen situasional resmi. 
-Tugasmu menganalisis data dan menghasilkan laporan dengan struktur: FAKTA-FAKTA, ANALISIS INTELIJEN, dan REKOMENDASI per jabatan.
+Kamu adalah Perwira Analis Intelijen Senior yang bertugas di Kota Medan, Sumatera Utara, Indonesia.
+Seluruh analisis, aktor, konteks, dan rekomendasi HARUS berfokus pada lingkup lokal Kota Medan dan sekitarnya — bukan nasional.
+Rekomendasi WAJIB selalu ditujukan kepada empat jabatan berikut secara berurutan:
+1. Dandim 0201/BB Medan
+2. Kepala Kejaksaan Negeri Medan
+3. Walikota Medan
+4. Kapolrestabes Medan
+Sesuaikan isi rekomendasi dengan tugas pokok dan fungsi masing-masing jabatan tersebut.
+Aktor yang teridentifikasi MINIMAL 3 orang dengan peran spesifik di lingkungan Kota Medan.
 Balas HANYA dengan JSON valid tanpa markdown, tanpa teks tambahan apapun.
 PROMPT;
 
@@ -210,60 +216,88 @@ PROMPT;
     private function buatPrompt(string $namaFolder, string $tanggal, string $konten): string
     {
         return <<<PROMPT
-Analisis data berikut dan buat laporan intelijen situasional yang komprehensif:
+Analisis data berikut dan buat laporan intelijen situasional yang komprehensif dengan konteks lokal Kota Medan:
 
-WILAYAH/KASUS: {$namaFolder}
+KASUS/ISU: {$namaFolder}
+LOKASI: Kota Medan, Sumatera Utara
 TANGGAL: {$tanggal}
 
 DATA SUMBER:
 {$konten}
 
-Kembalikan JSON dengan struktur berikut (semua field wajib diisi dengan konten substantif):
+Kembalikan JSON dengan struktur berikut (semua field wajib diisi dengan konten substantif dan relevan dengan Kota Medan):
 {
-  "tingkat_risiko": (angka 1-10 berdasarkan analisis),
-  "prediksi_vonis": "proyeksi situasi ke depan secara spesifik",
+  "tingkat_risiko": (angka 1-10 berdasarkan analisis situasi di Medan),
+  "prediksi_vonis": "proyeksi situasi ke depan secara spesifik di Kota Medan",
   "klasifikasi_dokumen": "RAHASIA/TERBATAS/BIASA",
-  "ringkasan_eksekutif": "Ringkasan 2-3 kalimat yang tajam dan langsung",
-  "kategori": "pilih salah satu: ideologi/politik/ekonomi/sosbud/hankam — sesuai tema utama kasus",
-  "sub_kategori": "pilih salah satu yang paling sesuai: radikalisme/separatisme/ekstremisme/elektoral/intervensi_asing/oposisi/korupsi/investasi_asing/pencucian_uang/hoaks_sara/komunal/budaya/siber/terorisme/perbatasan",
+  "ringkasan_eksekutif": "Ringkasan 2-3 kalimat yang tajam tentang situasi di Kota Medan",
+  "kategori": "pilih salah satu: ideologi/politik/ekonomi/sosbud/hankam",
+  "sub_kategori": "pilih salah satu: radikalisme/separatisme/ekstremisme/elektoral/intervensi_asing/oposisi/korupsi/investasi_asing/pencucian_uang/hoaks_sara/komunal/budaya/siber/terorisme/perbatasan",
   "fakta_fakta": [
     {
       "huruf": "A",
-      "judul": "Judul Topik Fakta",
-      "isi": "Detail lengkap fakta — tanggal, lokasi, pelaku, kronologi, data spesifik. Minimal 3-4 kalimat."
+      "judul": "Judul Topik Fakta di Medan",
+      "isi": "Detail lengkap fakta — tanggal, lokasi spesifik di Medan, pelaku, kronologi. Minimal 3-4 kalimat."
     }
   ],
-  "analisis_intelijen": "Analisis mendalam 5-6 kalimat: potensi kerawanan, ancaman tersembunyi, dinamika situasi, pola yang teridentifikasi, dan proyeksi ke depan.",
+  "analisis_intelijen": "Analisis mendalam 5-6 kalimat tentang situasi di Kota Medan: potensi kerawanan lokal, dinamika sosial-politik Medan, pola yang teridentifikasi, dan proyeksi ke depan.",
   "jabatan_rekomendasi": {
     "j1": {
-      "nama_jabatan": "Jabatan sesuai konteks (misal: Walikota/Kapolres/Dandim/Kajari)",
-      "poin": ["Rekomendasi spesifik dan actionable pertama", "Rekomendasi spesifik dan actionable kedua", "Rekomendasi spesifik dan actionable ketiga"]
+      "nama_jabatan": "Dandim 0201/BB Medan",
+      "poin": [
+        "Rekomendasi spesifik sesuai tupoksi Dandim terkait situasi ini",
+        "Rekomendasi kedua untuk Dandim",
+        "Rekomendasi ketiga untuk Dandim"
+      ]
     },
-    "j2": {"nama_jabatan": "Jabatan Kedua", "poin": ["Rekomendasi A", "Rekomendasi B", "Rekomendasi C"]},
-    "j3": {"nama_jabatan": "Jabatan Ketiga", "poin": ["Rekomendasi A", "Rekomendasi B"]},
-    "j4": {"nama_jabatan": "Jabatan Keempat", "poin": ["Rekomendasi A", "Rekomendasi B"]}
+    "j2": {
+      "nama_jabatan": "Kepala Kejaksaan Negeri Medan",
+      "poin": [
+        "Rekomendasi spesifik sesuai tupoksi Kajari terkait situasi ini",
+        "Rekomendasi kedua untuk Kajari",
+        "Rekomendasi ketiga untuk Kajari"
+      ]
+    },
+    "j3": {
+      "nama_jabatan": "Walikota Medan",
+      "poin": [
+        "Rekomendasi spesifik sesuai kewenangan Walikota terkait situasi ini",
+        "Rekomendasi kedua untuk Walikota",
+        "Rekomendasi ketiga untuk Walikota"
+      ]
+    },
+    "j4": {
+      "nama_jabatan": "Kapolrestabes Medan",
+      "poin": [
+        "Rekomendasi spesifik sesuai tupoksi Kapolrestabes terkait situasi ini",
+        "Rekomendasi kedua untuk Kapolrestabes",
+        "Rekomendasi ketiga untuk Kapolrestabes"
+      ]
+    }
   },
   "early_warning": [
-    "Indikator peringatan dini 1 yang spesifik dan terukur",
+    "Indikator peringatan dini 1 yang spesifik dan terukur di Medan",
     "Indikator peringatan dini 2",
     "Indikator peringatan dini 3",
     "Indikator peringatan dini 4"
   ],
-  "catatan_analis": "Catatan kritis dan tegas dari sudut pandang analis senior — 1-2 kalimat.",
+  "catatan_analis": "Catatan kritis dari sudut pandang analis senior tentang situasi di Medan — 1-2 kalimat.",
   "aktor": [
-    {"nama": "Nama Lengkap", "inisial": "NL", "peran": "Peran spesifik dalam kasus", "status": "tersangka/saksi/dpo", "warna_avatar": "#be123c"}
+    {"nama": "Nama Lengkap 1", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "tersangka/saksi/dpo", "warna_avatar": "#be123c"},
+    {"nama": "Nama Lengkap 2", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "saksi", "warna_avatar": "#1e6fa3"},
+    {"nama": "Nama Lengkap 3", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "saksi", "warna_avatar": "#065f46"}
   ],
   "timeline": [
-    {"tanggal": "YYYY-MM-DD", "keterangan": "Deskripsi kejadian yang detail dan spesifik", "warna_dot": "#16a34a"}
+    {"tanggal": "YYYY-MM-DD", "keterangan": "Deskripsi kejadian spesifik di Medan dengan lokasi", "warna_dot": "#16a34a"}
   ],
   "swot": {
-    "S": ["Kekuatan spesifik 1", "Kekuatan spesifik 2", "Kekuatan spesifik 3"],
-    "W": ["Kelemahan spesifik 1", "Kelemahan spesifik 2", "Kelemahan spesifik 3"],
-    "O": ["Peluang spesifik 1", "Peluang spesifik 2"],
-    "T": ["Ancaman spesifik 1", "Ancaman spesifik 2", "Ancaman spesifik 3"]
+    "S": ["Kekuatan internal yang mendukung penanganan di Medan", "Kekuatan 2", "Kekuatan 3"],
+    "W": ["Kelemahan internal di Medan", "Kelemahan 2", "Kelemahan 3"],
+    "O": ["Peluang eksternal yang dapat dimanfaatkan di Medan", "Peluang 2"],
+    "T": ["Ancaman eksternal yang perlu diwaspadai di Medan", "Ancaman 2", "Ancaman 3"]
   },
   "risk": [
-    {"label": "Nama Risiko Spesifik", "nilai": 75, "warna": "#dc2626", "keterangan": "Penjelasan detail risiko ini"}
+    {"label": "Nama Risiko Spesifik di Medan", "nilai": 75, "warna": "#dc2626", "keterangan": "Penjelasan detail risiko ini di konteks Medan"}
   ],
   "confidence": {
     "kelengkapan_data": 75,
@@ -316,7 +350,7 @@ PROMPT;
                 'sub_kategori' => $subKategori,
                 'risiko'       => $risikoLabel,
                 'status'       => 'aktif',
-                'wilayah'      => $analisis->wilayah,
+                'wilayah'      => 'Kota Medan, Sumatera Utara',
                 'sumber'       => 'SEPIA RPI',
             ]);
         } else {

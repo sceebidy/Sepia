@@ -27,11 +27,12 @@ class GoogleSearchController extends Controller
                 ])->timeout(30)->post('https://api.openai.com/v1/responses', [
                     'model' => 'gpt-4o',
                     'tools' => [['type' => 'web_search_preview']],
-                    'input' => 'Cari 10 berita atau artikel terbaru tentang: "' . $query . '". ' .
-                               'Kembalikan HANYA JSON array tanpa markdown, format: ' .
-                               '[{"judul":"...","url":"...","snippet":"...","sumber":"..."}]. ' .
-                               'Maksimal 10 hasil, prioritaskan sumber berita Indonesia.',
-                ]);
+                    'input' => 'Cari 10 berita atau artikel terbaru tentang: "' . $query . '" yang terjadi di Kota Medan, Sumatera Utara. ' .
+                'Fokuskan pencarian pada berita lokal Medan dan Sumatera Utara. ' .
+                'Kembalikan HANYA JSON array tanpa markdown, format: ' .
+                '[{"judul":"...","url":"...","snippet":"...","sumber":"..."}]. ' .
+                'Maksimal 10 hasil, prioritaskan sumber berita lokal Medan dan Sumatera Utara.',
+                        ]);
 
                 if ($response->successful()) {
                     $data    = $response->json();
