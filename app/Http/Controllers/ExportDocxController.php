@@ -177,8 +177,9 @@ class ExportDocxController extends Controller
             foreach ($jabatanRek as $jabatan) {
                 $section->addText($no . '. ' . $this->b($jabatan['nama_jabatan'] ?? '-'), ['bold' => true, 'size' => 11], ['spaceBefore' => 80, 'spaceAfter' => 40]);
                 foreach ($jabatan['poin'] ?? [] as $p) {
-                    $section->addListItem($this->b($p), 0, ['size' => 11], ['spaceAfter' => 30, 'lineHeight' => 1.5]);
-                }
+    $teks = is_array($p) ? ($p['rekomendasi'] ?? '') : $p;
+    $section->addListItem($this->b($teks), 0, ['size' => 11], ['spaceAfter' => 30, 'lineHeight' => 1.5]);
+}
                 $no++;
             }
         } elseif ($analisis->rekomendasi->isNotEmpty()) {
@@ -195,8 +196,9 @@ class ExportDocxController extends Controller
         // IV. EARLY WARNING
         if (!empty($earlyWarning)) {
             $section->addText('IV. INDIKATOR PERINGATAN DINI', ['bold' => true, 'size' => 12, 'underline' => 'single', 'allCaps' => true], ['spaceBefore' => 160, 'spaceAfter' => 100]);
-            foreach ($earlyWarning as $i => $ew) {
-                $section->addText(($i + 1) . '. ' . $this->b($ew), ['size' => 11], ['spaceAfter' => 40, 'lineHeight' => 1.5]);
+                    foreach ($earlyWarning as $i => $ew) {
+                $teks = is_array($ew) ? ($ew['indikator'] ?? '') : $ew;
+                $section->addText(($i + 1) . '. ' . $this->b($teks), ['size' => 11], ['spaceAfter' => 40, 'lineHeight' => 1.5]);
             }
         }
 

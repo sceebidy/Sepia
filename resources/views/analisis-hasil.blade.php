@@ -21,6 +21,7 @@
   $earlyWarning = $analisis->early_warning ? json_decode($analisis->early_warning, true) : [];
   if (is_string($earlyWarning)) $earlyWarning = json_decode($earlyWarning, true) ?? [];
   $swotGroups   = $analisis->swotItems->groupBy('tipe');
+  $analisisIntelijen = $analisis->analisis_intelijen ?? null;
   $nomorLap     = 'SEPIA/' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $analisis->judul), 0, 6)) . '/' . date('MY') . '/' . str_pad($analisis->id, 3, '0', STR_PAD_LEFT);
 @endphp
 <style>
@@ -348,20 +349,50 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
         <span>Lanjutan — Halaman 2</span>
       </div>
 
-      {{-- II. ANALISIS INTELIJEN --}}
+      {{-- II. ANALISIS INTELIJEN (PESTLE) --}}
       <div class="sek">
         <div class="sek-title">II. Analisis Intelijen</div>
-        @if($analisis->analisis_intelijen ?? $analisis->ringkasan_intelijen)
-        <p class="fakta-isi">{{ $analisis->analisis_intelijen ?? $analisis->ringkasan_intelijen }}</p>
+        @php
+          $pestleMeta = [
+            'politik'    => ['label' => 'Politik',    'icon' => '🏛️', 'color' => '#1e40af', 'bg' => '#eff6ff'],
+            'ekonomi'    => ['label' => 'Ekonomi',    'icon' => '💰', 'color' => '#166534', 'bg' => '#f0fdf4'],
+            'sosial'     => ['label' => 'Sosial',     'icon' => '👥', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
+            'teknologi'  => ['label' => 'Teknologi',  'icon' => '💻', 'color' => '#0369a1', 'bg' => '#f0f9ff'],
+            'hukum'      => ['label' => 'Hukum',      'icon' => '⚖️', 'color' => '#b45309', 'bg' => '#fffbeb'],
+            'lingkungan' => ['label' => 'Lingkungan', 'icon' => '🌿', 'color' => '#065f46', 'bg' => '#ecfdf5'],
+            'budaya'     => ['label' => 'Budaya',     'icon' => '🎭', 'color' => '#9d174d', 'bg' => '#fdf2f8'],
+          ];
+          $analisisRaw = $analisis->analisis_intelijen ?? null;
+          $pestle = null;
+          if ($analisisRaw) {
+            $decoded = json_decode($analisisRaw, true);
+            if (is_array($decoded) && isset($decoded['politik'])) {
+              $pestle = $decoded;
+            }
+          }
+        @endphp
+
+        @if($pestle)
+          @foreach($pestleMeta as $key => $meta)
+          @if(!empty($pestle[$key]))
+          <div style="margin-bottom:10px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
+            <div style="padding:6px 12px;background:{{ $meta['bg'] }};display:flex;align-items:center;gap:6px;border-bottom:1px solid #e2e8f0">
+              <span style="font-size:12pt">{{ $meta['icon'] }}</span>
+              <span style="font-size:10.5pt;font-weight:bold;color:{{ $meta['color'] }};text-transform:uppercase;letter-spacing:0.05em">{{ $meta['label'] }}</span>
+            </div>
+            <div style="padding:8px 12px;font-size:11pt;line-height:1.8;text-align:justify">{{ $pestle[$key] }}</div>
+          </div>
+          @endif
+          @endforeach
+        @elseif($analisisRaw)
+          <p class="fakta-isi">{{ $analisisRaw }}</p>
+        @elseif($analisis->ringkasan_intelijen)
+          <p class="fakta-isi">{{ $analisis->ringkasan_intelijen }}</p>
         @elseif($analisis->deskripsi)
-        <p class="fakta-isi">{{ $analisis->deskripsi }}</p>
-        @endif
-        @if($analisis->interpretasi)
-        <p class="fakta-isi" style="margin-top:8px">{{ $analisis->interpretasi }}</p>
+          <p class="fakta-isi">{{ $analisis->deskripsi }}</p>
         @endif
       </div>
-
-      {{-- III. REKOMENDASI --}}
+{{-- III. REKOMENDASI --}}
       @if(!empty($jabatanRek))
       <div class="sek">
         <div class="sek-title">III. Rekomendasi</div>
@@ -370,7 +401,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
           <div class="rek-head">{{ $loop->iteration }}. {{ $jabatan['nama_jabatan'] ?? $key }}</div>
           <ul class="rek-list">
             @foreach($jabatan['poin'] ?? [] as $poin)
-            <li>{{ $poin }}</li>
+            <li>{{ is_array($poin) ? ($poin['rekomendasi'] ?? '') : $poin }}</li>
             @endforeach
           </ul>
         </div>
@@ -399,7 +430,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
         <div class="sek-title">IV. Indikator Peringatan Dini</div>
         <ol class="ew-list">
           @foreach($earlyWarning as $ew)
-          <li>{{ $ew }}</li>
+          <li>{{ is_array($ew) ? ($ew['indikator'] ?? '') : $ew }}</li>
           @endforeach
         </ol>
       </div>

@@ -157,7 +157,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
     <a class="nav-item active" href="{{ route('datapool.index') }}"><div class="nav-icon">📋</div><div class="nav-item-text">RPI</div></a>
   </div>
 </nav>
-</nav>
+
 
 <div class="main">
   <div class="topbar">
@@ -170,9 +170,9 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
     </div>
     <div class="topbar-right">
       <a href="{{ route('datapool.show', $analisis ? $analisis->folder_id : 1) }}" class="tb-btn">📁 Buka Folder</a>
-      @if($laporan->analisis)
-      <a href="{{ route('analisis.show', [$laporan->folder, $laporan->analisis]) }}" class="tb-btn">⚡ Lihat Dokumen</a>
-      @endif
+      @if($analisis)
+<a href="{{ route('analisis.show', [$analisis->folder_id, $analisis->id]) }}" class="tb-btn">⚡ Lihat Dokumen</a>
+@endif
       <button class="tb-btn primary" onclick="window.print()">🖨 Cetak</button>
     </div>
   </div>
@@ -243,7 +243,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg-3); color: var(--te
       <div class="stat-card">
         <div class="stat-icon">⚖️</div>
         <div class="stat-val" style="font-size:14px;font-weight:700;margin-top:6px;line-height:1.4">{{ $laporan->prediksi_vonis ?? '—' }}</div>
-        <div class="stat-lbl">Prediksi Vonis</div>
+        <div class="stat-lbl">Prediksi Situasi</div>
       </div>
     </div>
 

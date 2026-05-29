@@ -98,7 +98,7 @@ class AnalisisController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  POST callback (n8n backward compat)
+    //  POST callback
     // ═══════════════════════════════════════════════════════════
     public function callback(Request $request)
     {
@@ -122,15 +122,13 @@ class AnalisisController extends Controller
 
         $systemPrompt = <<<PROMPT
 Kamu adalah Perwira Analis Intelijen Senior yang bertugas di Kota Medan, Sumatera Utara, Indonesia.
-Seluruh analisis, aktor, konteks, dan rekomendasi HARUS berfokus pada lingkup lokal Kota Medan dan sekitarnya — bukan nasional.
-Rekomendasi WAJIB selalu ditujukan kepada empat jabatan berikut secara berurutan:
-1. Dandim 0201/BB Medan
-2. Kepala Kejaksaan Negeri Medan
-3. Walikota Medan
-4. Kapolrestabes Medan
-Sesuaikan isi rekomendasi dengan tugas pokok dan fungsi masing-masing jabatan tersebut.
-Aktor yang teridentifikasi MINIMAL 3 orang dengan peran spesifik di lingkungan Kota Medan.
-Balas HANYA dengan JSON valid tanpa markdown, tanpa teks tambahan apapun.
+Seluruh analisis, aktor, konteks, dan rekomendasi HARUS berfokus pada lingkup lokal Kota Medan dan sekitarnya.
+Rekomendasi WAJIB selalu ditujukan kepada: Walikota Medan, Kapolrestabes Medan, Dandim 0201/BB Medan, dan Kepala Kejaksaan Negeri Medan.
+Aktor yang teridentifikasi MINIMAL 3 orang atau kelompok dengan peran spesifik.
+Seluruh analisis harus faktual, netral, legal, proporsional, dan berbasis bukti dari data sumber yang diberikan.
+Jangan membuat fakta, nama, tanggal, atau kesimpulan yang tidak didukung data sumber.
+Analisis intelijen WAJIB menggunakan framework PESTLE — bahas setiap dimensi (politik, ekonomi, sosial, teknologi, hukum, lingkungan, budaya) dalam paragraf terpisah yang substantif, minimal 3 kalimat per dimensi.
+Kembalikan HANYA JSON valid tanpa markdown, tanpa teks tambahan apapun.
 PROMPT;
 
         $userPrompt = $this->buatPrompt($folder->nama, $tanggal, $konten);
@@ -216,94 +214,282 @@ PROMPT;
     private function buatPrompt(string $namaFolder, string $tanggal, string $konten): string
     {
         return <<<PROMPT
-Analisis data berikut dan buat laporan intelijen situasional yang komprehensif dengan konteks lokal Kota Medan:
+Analisis data berikut dan buat laporan intelijen situasional yang komprehensif, faktual, netral, legal, proporsional, dan berbasis bukti.
 
-KASUS/ISU: {$namaFolder}
-LOKASI: Kota Medan, Sumatera Utara
-TANGGAL: {$tanggal}
+WILAYAH/KASUS: {$namaFolder}
+TANGGAL ANALISIS: {$tanggal}
+WILAYAH FOKUS UTAMA: Kota Medan, Provinsi Sumatera Utara
 
 DATA SUMBER:
 {$konten}
 
-Kembalikan JSON dengan struktur berikut (semua field wajib diisi dengan konten substantif dan relevan dengan Kota Medan):
+TUJUAN LAPORAN:
+Laporan ini bertujuan membantu pimpinan wilayah Kota Medan memahami situasi, mengantisipasi efek domino, serta menyiapkan kebijakan, tindakan, koordinasi, atau kegiatan yang diperlukan sesuai tugas pokok dan fungsi masing-masing jabatan.
+
+PRINSIP UTAMA:
+1. Jangan membuat fakta, nama, tanggal, lokasi, aktor, angka, atau kesimpulan yang tidak didukung data sumber.
+2. Pisahkan antara fakta terverifikasi, klaim sumber, dan informasi belum terkonfirmasi.
+3. Jangan menyatakan Kota Medan pasti terdampak jika tidak didukung data. Gunakan "berpotensi terdampak".
+4. Jangan membuat rekomendasi yang melampaui kewenangan pejabat.
+5. Jika data tidak cukup, nyatakan keterbatasan secara eksplisit.
+6. Kembalikan hanya JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan.
+
+ATURAN ID RELASIONAL:
+- Setiap sumber: source_id S1, S2, S3 dst
+- Setiap fakta: fakta_id F1, F2, F3 dst (minimal 3 fakta)
+- Setiap aktor: actor_id A1, A2, A3 dst (minimal 3 aktor)
+- Setiap timeline: event_id E1, E2, E3 dst (minimal 3 kejadian)
+- Setiap risiko: risk_id R1, R2, R3 dst
+- Setiap rekomendasi: recommendation_id REC1, REC2 dst (minimal 3 per jabatan)
+
+ATURAN VALIDASI RISIKO:
+- raw_score = probabilitas.skor x dampak.skor
+- nilai = round((raw_score / 25) x 100)
+- tingkat_risiko utama = ceil(nilai_risiko_tertinggi / 10) — skala 1-10
+- Warna: 0-24="#16a34a", 25-49="#ca8a04", 50-74="#f97316", 75-100="#dc2626"
+
+REKOMENDASI WAJIB untuk 4 jabatan (urutan tetap, minimal 3 poin per jabatan):
+j1 = Walikota Medan
+j2 = Kapolrestabes Medan
+j3 = Dandim 0201/BB Medan (JANGAN rekomendasikan penegakan hukum)
+j4 = Kepala Kejaksaan Negeri Medan (JANGAN rekomendasikan pengamanan lapangan)
+
+Kembalikan JSON dengan struktur PERSIS seperti berikut:
+
 {
-  "tingkat_risiko": (angka 1-10 berdasarkan analisis situasi di Medan),
-  "prediksi_vonis": "proyeksi situasi ke depan secara spesifik di Kota Medan",
-  "klasifikasi_dokumen": "RAHASIA/TERBATAS/BIASA",
-  "ringkasan_eksekutif": "Ringkasan 2-3 kalimat yang tajam tentang situasi di Kota Medan",
-  "kategori": "pilih salah satu: ideologi/politik/ekonomi/sosbud/hankam",
-  "sub_kategori": "pilih salah satu: radikalisme/separatisme/ekstremisme/elektoral/intervensi_asing/oposisi/korupsi/investasi_asing/pencucian_uang/hoaks_sara/komunal/budaya/siber/terorisme/perbatasan",
-  "fakta_fakta": [
+  "tingkat_risiko": 1,
+  "prediksi_situasi": "Proyeksi situasi ke depan berdasarkan data sumber.",
+  "klasifikasi_dokumen": "TERBATAS",
+  "ringkasan_eksekutif": "Ringkasan 2-3 kalimat faktual.",
+  "kategori": "ideologi/politik/ekonomi/sosbud/hankam",
+  "sub_kategori": "radikalisme/separatisme/ekstremisme/elektoral/intervensi_asing/oposisi/korupsi/investasi_asing/pencucian_uang/hoaks_sara/komunal/budaya/siber/terorisme/perbatasan",
+  "metadata_wilayah": {
+    "wilayah_kasus": "{$namaFolder}",
+    "wilayah_fokus_utama": "Kota Medan, Provinsi Sumatera Utara",
+    "tanggal_analisis": "{$tanggal}",
+    "daerah_asal_kejadian": [],
+    "daerah_terdampak_langsung": [],
+    "daerah_berpotensi_terdampak": []
+  },
+  "source_register": [
     {
-      "huruf": "A",
-      "judul": "Judul Topik Fakta di Medan",
-      "isi": "Detail lengkap fakta — tanggal, lokasi spesifik di Medan, pelaku, kronologi. Minimal 3-4 kalimat."
+      "source_id": "S1",
+      "judul": "Judul sumber",
+      "url": "URL sumber jika tersedia",
+      "sumber_media": "Nama media",
+      "tanggal_publikasi": null,
+      "jenis_sumber": "berita/opini/rilis_resmi/tidak_jelas",
+      "reliabilitas_sumber": "tinggi/sedang/rendah",
+      "catatan_reliabilitas": "Alasan penilaian."
     }
   ],
-  "analisis_intelijen": "Analisis mendalam 5-6 kalimat tentang situasi di Kota Medan: potensi kerawanan lokal, dinamika sosial-politik Medan, pola yang teridentifikasi, dan proyeksi ke depan.",
+  "validasi_sumber": {
+    "jumlah_sumber": 0,
+    "konsistensi_sumber": "tinggi/sedang/rendah",
+    "catatan_validasi": "Penjelasan kualitas sumber."
+  },
+  "fakta_fakta": [
+    {
+      "fakta_id": "F1",
+      "huruf": "A",
+      "judul": "Judul topik fakta",
+      "isi": "Detail fakta berdasarkan data sumber — minimal 3 kalimat.",
+      "kategori_fakta": "fakta_terverifikasi/klaim_sumber/informasi_belum_terkonfirmasi",
+      "tanggal_kejadian": null,
+      "lokasi": null,
+      "actor_ids": [],
+      "source_ids": [],
+      "status_verifikasi": "terverifikasi_multi_sumber/hanya_satu_sumber/tidak_terverifikasi",
+      "tingkat_keyakinan": "tinggi/sedang/rendah"
+    }
+  ],
+  "aktor": [
+    {
+      "actor_id": "A1",
+      "nama": "Nama atau label aktor",
+      "inisial": "NL",
+      "jenis_aktor": "individu/kelompok_masyarakat/organisasi/instansi_pemerintah/aparat_keamanan/perusahaan/media/tidak_diketahui",
+      "peran_dalam_kejadian": "pelaku/korban/saksi/pejabat/penegak_hukum/narasumber/terdampak/lainnya",
+      "status_hukum_atau_status_peristiwa": "tersangka/saksi/dpo/korban/pejabat/tidak_diketahui",
+      "tindakan_teridentifikasi": [],
+      "pengaruh_terhadap_situasi": "rendah/sedang/tinggi/tidak_dapat_ditentukan",
+      "source_ids": [],
+      "fakta_ids": [],
+      "tingkat_keyakinan": "tinggi/sedang/rendah",
+      "warna_avatar": "#be123c"
+    }
+  ],
+  "timeline": [
+    {
+      "event_id": "E1",
+      "tanggal": null,
+      "basis_tanggal": "tanggal_kejadian/tanggal_publikasi",
+      "date_precision": "hari/bulan/tahun/tidak_diketahui",
+      "lokasi": null,
+      "event_type": "kejadian/pernyataan/aksi_massa/kebijakan/proses_hukum/lainnya",
+      "keterangan": "Deskripsi kejadian berdasarkan data sumber.",
+      "actor_ids": [],
+      "source_ids": [],
+      "fakta_ids": [],
+      "status_verifikasi": "terverifikasi_multi_sumber/hanya_satu_sumber/tidak_terverifikasi",
+      "tingkat_keyakinan": "tinggi/sedang/rendah",
+      "warna_dot": "#16a34a"
+    }
+  ],
+  "analisis_intelijen": {
+    "politik": "Analisis dimensi POLITIK — kebijakan, kekuasaan, stabilitas pemerintahan terkait kasus ini di Kota Medan. Minimal 3 kalimat substantif.",
+    "ekonomi": "Analisis dimensi EKONOMI — dampak finansial, investasi, perdagangan, ketenagakerjaan di Kota Medan. Minimal 3 kalimat substantif.",
+    "sosial": "Analisis dimensi SOSIAL — dampak terhadap masyarakat, kelompok rentan, keresahan sosial di Kota Medan. Minimal 3 kalimat substantif.",
+    "teknologi": "Analisis dimensi TEKNOLOGI — peran teknologi, digital, infrastruktur dalam kasus ini di Kota Medan. Minimal 3 kalimat substantif.",
+    "hukum": "Analisis dimensi HUKUM — potensi pelanggaran, regulasi terkait, risiko hukum di Kota Medan. Minimal 3 kalimat substantif.",
+    "lingkungan": "Analisis dimensi LINGKUNGAN — dampak terhadap lingkungan hidup, SDA, tata ruang di Kota Medan. Minimal 3 kalimat substantif.",
+    "budaya": "Analisis dimensi BUDAYA — dampak terhadap nilai, adat, identitas budaya lokal Medan. Minimal 3 kalimat substantif."
+  },
+  "analisis_dampak_lintas_daerah": {
+    "status_indikasi": "ada_indikasi/belum_terdapat_indikasi/tidak_dapat_ditentukan",
+    "ringkasan": "Ringkasan dampak lintas daerah terhadap Kota Medan.",
+    "daerah_fokus_utama": "Kota Medan",
+    "kemungkinan_dampak": "rendah/sedang/tinggi",
+    "tingkat_dampak": "rendah/sedang/tinggi/kritis",
+    "dasar_fakta": [],
+    "indikator_peringatan_dini_lintas_daerah": []
+  },
+  "risk": [
+    {
+      "risk_id": "R1",
+      "label": "Nama risiko spesifik",
+      "deskripsi_risiko": "Penjelasan berdasarkan data sumber.",
+      "source_ids": [],
+      "linked_fakta_ids": [],
+      "linked_event_ids": [],
+      "indikator_risiko": [],
+      "probabilitas": {
+        "skor": 3,
+        "label": "mungkin",
+        "alasan": "Alasan skor probabilitas."
+      },
+      "dampak": {
+        "skor": 3,
+        "label": "sedang",
+        "alasan": "Alasan skor dampak."
+      },
+      "raw_score": 9,
+      "nilai": 36,
+      "tingkat_risiko": "sedang",
+      "warna": "#ca8a04",
+      "horizon_waktu": "7 hari",
+      "tingkat_keyakinan": "tinggi/sedang/rendah"
+    }
+  ],
+  "early_warning": [
+    {
+      "indikator": "Indikator peringatan dini spesifik dan terukur.",
+      "kategori": "sosial/keamanan/hukum/ekonomi/politik/digital_informasi/lainnya",
+      "wilayah_monitoring": ["Kota Medan"],
+      "source_ids": [],
+      "risk_ids": []
+    }
+  ],
+  "swot": {
+    "S": [
+      {"poin": "Kekuatan spesifik 1.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Kekuatan spesifik 2.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Kekuatan spesifik 3.", "dasar_fakta": [], "source_ids": []}
+    ],
+    "W": [
+      {"poin": "Kelemahan spesifik 1.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Kelemahan spesifik 2.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Kelemahan spesifik 3.", "dasar_fakta": [], "source_ids": []}
+    ],
+    "O": [
+      {"poin": "Peluang spesifik 1.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Peluang spesifik 2.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Peluang spesifik 3.", "dasar_fakta": [], "source_ids": []}
+    ],
+    "T": [
+      {"poin": "Ancaman spesifik 1.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Ancaman spesifik 2.", "dasar_fakta": [], "source_ids": []},
+      {"poin": "Ancaman spesifik 3.", "dasar_fakta": [], "source_ids": []}
+    ]
+  },
   "jabatan_rekomendasi": {
     "j1": {
-      "nama_jabatan": "Dandim 0201/BB Medan",
+      "nama_jabatan": "Walikota Medan",
       "poin": [
-        "Rekomendasi spesifik sesuai tupoksi Dandim terkait situasi ini",
-        "Rekomendasi kedua untuk Dandim",
-        "Rekomendasi ketiga untuk Dandim"
+        {
+          "recommendation_id": "REC1",
+          "rekomendasi": "Rekomendasi spesifik dan actionable untuk Walikota.",
+          "dasar_fakta": [],
+          "linked_risk_ids": [],
+          "tindakan_yang_disarankan": "Tindakan sesuai kewenangan Walikota.",
+          "prioritas": "tinggi/sedang/rendah",
+          "batas_waktu": "segera/1x24 jam/3 hari/7 hari/30 hari",
+          "risiko_jika_tidak_dilakukan": "Risiko jika tidak dijalankan.",
+          "tingkat_keyakinan": "tinggi/sedang/rendah"
+        }
       ]
     },
     "j2": {
-      "nama_jabatan": "Kepala Kejaksaan Negeri Medan",
+      "nama_jabatan": "Kapolrestabes Medan",
       "poin": [
-        "Rekomendasi spesifik sesuai tupoksi Kajari terkait situasi ini",
-        "Rekomendasi kedua untuk Kajari",
-        "Rekomendasi ketiga untuk Kajari"
+        {
+          "recommendation_id": "REC2",
+          "rekomendasi": "Rekomendasi spesifik dan actionable untuk Kapolrestabes.",
+          "dasar_fakta": [],
+          "linked_risk_ids": [],
+          "tindakan_yang_disarankan": "Tindakan sesuai kewenangan Kapolrestabes.",
+          "prioritas": "tinggi/sedang/rendah",
+          "batas_waktu": "segera/1x24 jam/3 hari/7 hari/30 hari",
+          "risiko_jika_tidak_dilakukan": "Risiko jika tidak dijalankan.",
+          "tingkat_keyakinan": "tinggi/sedang/rendah"
+        }
       ]
     },
     "j3": {
-      "nama_jabatan": "Walikota Medan",
+      "nama_jabatan": "Dandim 0201/BB Medan",
       "poin": [
-        "Rekomendasi spesifik sesuai kewenangan Walikota terkait situasi ini",
-        "Rekomendasi kedua untuk Walikota",
-        "Rekomendasi ketiga untuk Walikota"
+        {
+          "recommendation_id": "REC3",
+          "rekomendasi": "Rekomendasi sesuai tupoksi binwil — deteksi dini, komunikasi sosial, pembinaan teritorial.",
+          "dasar_fakta": [],
+          "linked_risk_ids": [],
+          "tindakan_yang_disarankan": "Tindakan sesuai kewenangan Dandim.",
+          "prioritas": "tinggi/sedang/rendah",
+          "batas_waktu": "segera/1x24 jam/3 hari/7 hari/30 hari",
+          "risiko_jika_tidak_dilakukan": "Risiko jika tidak dijalankan.",
+          "tingkat_keyakinan": "tinggi/sedang/rendah"
+        }
       ]
     },
     "j4": {
-      "nama_jabatan": "Kapolrestabes Medan",
+      "nama_jabatan": "Kepala Kejaksaan Negeri Medan",
       "poin": [
-        "Rekomendasi spesifik sesuai tupoksi Kapolrestabes terkait situasi ini",
-        "Rekomendasi kedua untuk Kapolrestabes",
-        "Rekomendasi ketiga untuk Kapolrestabes"
+        {
+          "recommendation_id": "REC4",
+          "rekomendasi": "Rekomendasi sesuai tupoksi hukum — pertimbangan hukum, mitigasi risiko hukum kebijakan.",
+          "dasar_fakta": [],
+          "linked_risk_ids": [],
+          "tindakan_yang_disarankan": "Tindakan sesuai kewenangan Kajari.",
+          "prioritas": "tinggi/sedang/rendah",
+          "batas_waktu": "segera/1x24 jam/3 hari/7 hari/30 hari",
+          "risiko_jika_tidak_dilakukan": "Risiko jika tidak dijalankan.",
+          "tingkat_keyakinan": "tinggi/sedang/rendah"
+        }
       ]
     }
   },
-  "early_warning": [
-    "Indikator peringatan dini 1 yang spesifik dan terukur di Medan",
-    "Indikator peringatan dini 2",
-    "Indikator peringatan dini 3",
-    "Indikator peringatan dini 4"
-  ],
-  "catatan_analis": "Catatan kritis dari sudut pandang analis senior tentang situasi di Medan — 1-2 kalimat.",
-  "aktor": [
-    {"nama": "Nama Lengkap 1", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "tersangka/saksi/dpo", "warna_avatar": "#be123c"},
-    {"nama": "Nama Lengkap 2", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "saksi", "warna_avatar": "#1e6fa3"},
-    {"nama": "Nama Lengkap 3", "inisial": "NL", "peran": "Peran spesifik dalam kasus di Medan", "status": "saksi", "warna_avatar": "#065f46"}
-  ],
-  "timeline": [
-    {"tanggal": "YYYY-MM-DD", "keterangan": "Deskripsi kejadian spesifik di Medan dengan lokasi", "warna_dot": "#16a34a"}
-  ],
-  "swot": {
-    "S": ["Kekuatan internal yang mendukung penanganan di Medan", "Kekuatan 2", "Kekuatan 3"],
-    "W": ["Kelemahan internal di Medan", "Kelemahan 2", "Kelemahan 3"],
-    "O": ["Peluang eksternal yang dapat dimanfaatkan di Medan", "Peluang 2"],
-    "T": ["Ancaman eksternal yang perlu diwaspadai di Medan", "Ancaman 2", "Ancaman 3"]
-  },
-  "risk": [
-    {"label": "Nama Risiko Spesifik di Medan", "nilai": 75, "warna": "#dc2626", "keterangan": "Penjelasan detail risiko ini di konteks Medan"}
-  ],
   "confidence": {
     "kelengkapan_data": 75,
     "konsistensi_sumber": 80,
     "kualitas_dokumen": 70,
-    "kedalaman_analisis": 85
+    "kedalaman_analisis": 85,
+    "catatan_confidence": "Penjelasan skor confidence."
+  },
+  "catatan_analis": "Catatan kritis berbasis data dari analis senior.",
+  "catatan_akhir": {
+    "kesimpulan_umum": "Kesimpulan umum berdasarkan fakta dan risiko.",
+    "prioritas_monitoring": [],
+    "peringatan_keterbatasan": "Keterbatasan utama data dan analisis."
   }
 }
 PROMPT;
@@ -314,17 +500,31 @@ PROMPT;
     // ═══════════════════════════════════════════════════════════
     private function simpanHasil(AnalisisKasus $analisis, array $data): void
     {
+        // ── Hitung tingkat risiko dari nilai tertinggi ──
+        $tingkatRisiko = $data['tingkat_risiko'] ?? 5;
+        if (!empty($data['risk']) && is_array($data['risk'])) {
+            $nilaiTertinggi = max(array_column($data['risk'], 'nilai') ?: [0]);
+            if ($nilaiTertinggi > 0) {
+                $tingkatRisiko = ceil($nilaiTertinggi / 10);
+            }
+        }
+
         // ── Update analisis utama ──
         $analisis->update([
-            'tingkat_risiko'      => $data['tingkat_risiko']      ?? 5,
-            'prediksi_vonis'      => $data['prediksi_vonis']      ?? null,
+            'tingkat_risiko'      => $tingkatRisiko,
+            'prediksi_vonis'      => $data['prediksi_situasi']    ?? $data['prediksi_vonis'] ?? null,
             'ringkasan_eksekutif' => $data['ringkasan_eksekutif'] ?? null,
-            'analisis_intelijen'  => $data['analisis_intelijen']  ?? null,
+            'analisis_intelijen'  => is_array($data['analisis_intelijen'] ?? null)
+                                        ? json_encode($data['analisis_intelijen'])
+                                        : ($data['analisis_intelijen'] ?? null),
             'catatan_analis'      => $data['catatan_analis']      ?? null,
             'klasifikasi_dokumen' => $data['klasifikasi_dokumen'] ?? 'TERBATAS',
             'fakta_fakta'         => json_encode($data['fakta_fakta']         ?? []),
             'jabatan_rekomendasi' => json_encode($data['jabatan_rekomendasi'] ?? []),
-            'early_warning'       => json_encode($data['early_warning']       ?? []),
+            'early_warning'       => json_encode(
+                array_map(fn($ew) => is_array($ew) ? ($ew['indikator'] ?? '') : $ew,
+                    $data['early_warning'] ?? [])
+            ),
         ]);
 
         // ── Simpan ke tabel issues untuk dashboard ──
@@ -339,8 +539,7 @@ PROMPT;
 
         $kategori    = strtolower(trim($data['kategori']     ?? ''));
         $subKategori = strtolower(trim($data['sub_kategori'] ?? ''));
-        $risiko      = (float) ($data['tingkat_risiko'] ?? 5);
-        $risikoLabel = $risiko >= 7 ? 'tinggi' : ($risiko >= 4 ? 'sedang' : 'rendah');
+        $risikoLabel = $tingkatRisiko >= 7 ? 'tinggi' : ($tingkatRisiko >= 4 ? 'sedang' : 'rendah');
 
         if (in_array($kategori, $kategoriValid) && in_array($subKategori, $subKategoriValid)) {
             Issue::create([
@@ -359,7 +558,8 @@ PROMPT;
 
         // ── SWOT ──
         foreach (['S', 'W', 'O', 'T'] as $tipe) {
-            foreach ($data['swot'][$tipe] ?? [] as $i => $isi) {
+            foreach ($data['swot'][$tipe] ?? [] as $i => $item) {
+                $isi = is_array($item) ? ($item['poin'] ?? '') : $item;
                 if (trim($isi)) {
                     SwotItem::create([
                         'analisis_id' => $analisis->id,
@@ -373,14 +573,18 @@ PROMPT;
 
         // ── Aktor ──
         foreach ($data['aktor'] ?? [] as $aktor) {
-            if (!empty($aktor['nama'])) {
+            $nama = $aktor['nama'] ?? '';
+            if (!empty($nama)) {
+                $status = $aktor['status_hukum_atau_status_peristiwa'] ?? $aktor['status'] ?? 'saksi';
+                if (!in_array($status, ['tersangka', 'saksi', 'dpo'])) {
+                    $status = 'saksi';
+                }
                 AktorKasus::create([
                     'analisis_id'  => $analisis->id,
-                    'nama'         => $aktor['nama'],
-                    'inisial'      => $aktor['inisial'] ?? strtoupper(substr($aktor['nama'], 0, 2)),
-                    'peran'        => $aktor['peran']   ?? '-',
-                    'status'       => in_array($aktor['status'] ?? '', ['tersangka', 'saksi', 'dpo'])
-                                        ? $aktor['status'] : 'saksi',
+                    'nama'         => $nama,
+                    'inisial'      => substr($aktor['inisial'] ?? strtoupper(substr($nama, 0, 2)), 0, 10),
+                    'peran'        => $aktor['peran_dalam_kejadian'] ?? $aktor['peran'] ?? '-',
+                    'status'       => $status,
                     'warna_avatar' => $aktor['warna_avatar'] ?? '#1a5c2e',
                 ]);
             }
@@ -388,29 +592,30 @@ PROMPT;
 
         // ── Timeline ──
         foreach ($data['timeline'] ?? [] as $i => $tl) {
-            if (!empty($tl['tanggal'])) {
-                TimelineKasus::create([
-                    'analisis_id' => $analisis->id,
-                    'tanggal'     => $tl['tanggal'],
-                    'keterangan'  => $tl['keterangan'] ?? '-',
-                    'warna_dot'   => $tl['warna_dot']  ?? '#16a34a',
-                    'urutan'      => $i,
-                ]);
-            }
+            TimelineKasus::create([
+                'analisis_id' => $analisis->id,
+                'tanggal'     => $tl['tanggal'] ?? now()->format('Y-m-d'),
+                'keterangan'  => $tl['keterangan'] ?? '-',
+                'warna_dot'   => $tl['warna_dot']  ?? '#16a34a',
+                'urutan'      => $i,
+            ]);
         }
 
-        // ── Rekomendasi per jabatan ──
+        // ── Rekomendasi ──
         $urutan = 0;
         foreach ($data['jabatan_rekomendasi'] ?? [] as $jabatan) {
             $namaJabatan = $jabatan['nama_jabatan'] ?? '-';
             foreach ($jabatan['poin'] ?? [] as $poin) {
-                RekomendasiKasus::create([
-                    'analisis_id' => $analisis->id,
-                    'judul'       => $namaJabatan,
-                    'deskripsi'   => $poin,
-                    'prioritas'   => 'tinggi',
-                    'urutan'      => $urutan++,
-                ]);
+                $teks = is_array($poin) ? ($poin['rekomendasi'] ?? '') : $poin;
+                if (!empty($teks)) {
+                    RekomendasiKasus::create([
+                        'analisis_id' => $analisis->id,
+                        'judul'       => $namaJabatan,
+                        'deskripsi'   => $teks,
+                        'prioritas'   => is_array($poin) ? ($poin['prioritas'] ?? 'tinggi') : 'tinggi',
+                        'urutan'      => $urutan++,
+                    ]);
+                }
             }
         }
 
@@ -422,7 +627,7 @@ PROMPT;
                     'label'       => $risk['label'],
                     'nilai'       => $risk['nilai']      ?? 0,
                     'warna'       => $risk['warna']      ?? '#dc2626',
-                    'keterangan'  => $risk['keterangan'] ?? null,
+                    'keterangan'  => $risk['deskripsi_risiko'] ?? $risk['keterangan'] ?? null,
                     'urutan'      => $i,
                 ]);
             }
