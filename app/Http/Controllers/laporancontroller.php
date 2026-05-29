@@ -15,27 +15,38 @@ class LaporanController extends Controller
      */
     public function store(Folder $folder, AnalisisKasus $analisis)
     {
-        // Cek laporan sudah ada berdasarkan analisis_id
-        $existing = Laporan::where('analisis_id', $analisis->id)->first();
+        // FIX AMAN: Karena kolom 'analisis_id' tidak ada di tabel 'laporan', 
+        // kita cari data existing menggunakan teks unik/pola ID pada kolom 'judul'
+        $patternJudul = 'Laporan Analisis: ' . $folder->nama . ' (#' . $analisis->id . ')';
+        $existing = Laporan::where('judul', $patternJudul)->first();
+        
         if ($existing) {
             return redirect()->route('laporan.show', $existing)
                 ->with('success', 'Laporan sudah pernah dibuat sebelumnya.');
         }
 
-        $laporan = Laporan::create([
-            'judul'             => 'Laporan Analisis: ' . $folder->nama,
+        // Kumpulkan data ke dalam array terlebih dahulu
+        $dataLaporan = [
+            'judul'             => $patternJudul, // Menyimpan ID di dalam judul sebagai penanda
             'ringkasan'         => $analisis->ringkasan_eksekutif,
             'kategori'          => 'umum',
             'status'            => 'draft',
             'dibuat_oleh'       => 'Analis SEPIA',
-            'analisis_id'       => $analisis->id,
             'folder_id'         => $folder->id,
             'tingkat_risiko'    => $analisis->tingkat_risiko,
             'prediksi_vonis'    => $analisis->prediksi_vonis,
             'jumlah_sumber'     => $analisis->jumlah_sumber,
             'jumlah_aktor'      => $analisis->aktor()->count(),
-            'jumlah_rekomendasi'=> \DB::table('rekomendasi_kasus')->where('analisis_id', $analisis->id)->count(),     
-   ]);
+            'jumlah_rekomendasi'=> DB::table('rekomendasi_kasus')->where('analisis_id', $analisis->id)->count(),
+        ];
+
+        // OPTIONAL CHECK: Jika di masa depan Anda melakukan migrasi database dan menambahkan 'analisis_id',
+        // kode di bawah ini akan otomatis mengisinya tanpa merusak sistem sekarang
+        if (DB::getSchemaBuilder()->hasColumn('laporan', 'analisis_id')) {
+            $dataLaporan['analisis_id'] = $analisis->id;
+        }
+
+        $laporan = Laporan::create($dataLaporan);
 
         return redirect()->route('laporan.show', $laporan)
             ->with('success', 'Laporan berhasil dibuat.');
@@ -46,10 +57,22 @@ class LaporanController extends Controller
      */
     public function show(Laporan $laporan)
     {
-        // Ambil analisis langsung dari relasi analisis_id
-        $analisis = $laporan->analisis_id
-            ? AnalisisKasus::with(['swotItems', 'aktor', 'timeline', 'rekomendasi', 'confidence', 'riskItems'])
-                ->find($laporan->analisis_id)
+        $analisisId = null;
+
+        // Cek jika kolom analisis_id tersedia dan terisi
+        if (DB::getSchemaBuilder()->hasColumn('laporan', 'analisis_id') && $laporan->analisis_id) {
+            $analisisId = $laporan->analisis_id;
+        } else {
+            // FALLBACK: Jika kolom tidak ada, ekstrak ID analisis dari string judul "(#ID)"
+            preg_match('/\(#(\d+)\)$/', $laporan->judul, $matches);
+            if (!empty($matches[1])) {
+                $analisisId = $matches[1];
+            }
+        }
+
+        // Ambil data analisis menggunakan ID yang berhasil diekstrak
+        $analisis = $analisisId
+            ? AnalisisKasus::with(['swotItems', 'aktor', 'timeline', 'rekomendasi', 'confidence', 'riskItems'])->find($analisisId)
             : null;
 
         $timeline    = $analisis ? $analisis->timeline()->orderBy('urutan')->get()    : collect();

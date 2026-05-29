@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('judul');
             $table->dateTime('tanggal_analisis')->nullable();
             $table->decimal('tingkat_risiko', 3, 1)->nullable(); // 0.0 - 10.0
-            $table->string('prediksi_vonis')->nullable();        // cth: "12-15 thn"
+            $table->text('prediksi_vonis')->nullable();          // ← diubah: string → text (output AI bisa >255 char)
             $table->integer('jumlah_sumber')->default(0);
             $table->string('model_versi')->default('SEPIA v1.0');
             $table->timestamps();
@@ -42,8 +42,8 @@ return new class extends Migration
                   ->constrained('analisis_kasus')
                   ->cascadeOnDelete();
             $table->string('nama');
-            $table->string('inisial', 3);
-            $table->string('peran');
+            $table->string('inisial', 10);   // ← diubah: 3 → 10 (AI bisa buat singkatan 4+ huruf, cth: BPID)
+            $table->text('peran');            // ← diubah: string → text (peran bisa deskriptif panjang)
             $table->enum('status', ['tersangka', 'saksi', 'dpo']);
             $table->string('warna_avatar')->default('#1a5c2e');
             $table->timestamps();
@@ -97,7 +97,7 @@ return new class extends Migration
             $table->string('label');          // cth: "Risiko Vonis Bebas"
             $table->integer('nilai');         // 0-100
             $table->string('warna')->default('#dc2626');
-            $table->string('keterangan')->nullable(); // cth: "Rp 211 M"
+            $table->text('keterangan')->nullable();    // ← diubah: string → text (deskripsi risiko bisa panjang)
             $table->integer('urutan')->default(0);
             $table->timestamps();
         });

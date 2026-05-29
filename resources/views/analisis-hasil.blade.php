@@ -380,7 +380,7 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
               <span style="font-size:12pt">{{ $meta['icon'] }}</span>
               <span style="font-size:10.5pt;font-weight:bold;color:{{ $meta['color'] }};text-transform:uppercase;letter-spacing:0.05em">{{ $meta['label'] }}</span>
             </div>
-            <div style="padding:8px 12px;font-size:11pt;line-height:1.8;text-align:justify">{{ $pestle[$key] }}</div>
+            <div style="padding:8px 12px;font-size:11pt;line-height:1.8;text-align:justify">{{ $pestle[$key]['isi'] }}</div>
           </div>
           @endif
           @endforeach

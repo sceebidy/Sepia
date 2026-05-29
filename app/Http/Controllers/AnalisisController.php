@@ -127,8 +127,10 @@ Rekomendasi WAJIB selalu ditujukan kepada: Walikota Medan, Kapolrestabes Medan, 
 Aktor yang teridentifikasi MINIMAL 3 orang atau kelompok dengan peran spesifik.
 Seluruh analisis harus faktual, netral, legal, proporsional, dan berbasis bukti dari data sumber yang diberikan.
 Jangan membuat fakta, nama, tanggal, atau kesimpulan yang tidak didukung data sumber.
-Analisis intelijen WAJIB menggunakan framework PESTLE — bahas setiap dimensi (politik, ekonomi, sosial, teknologi, hukum, lingkungan, budaya) dalam paragraf terpisah yang substantif, minimal 3 kalimat per dimensi.
-Kembalikan HANYA JSON valid tanpa markdown, tanpa teks tambahan apapun.
+Analisis intelijen WAJIB menggunakan framework PESTLE+C (Politik, Ekonomi, Sosial, Teknologi, Hukum/Legal, Lingkungan, Budaya/Culture).
+Setiap dimensi WAJIB ditulis sebagai paragraf naratif terpisah minimal 4 kalimat — bukan bullet point.
+Setiap paragraf harus mencerminkan dampak atau relevansi dimensi tersebut secara spesifik terhadap situasi di Kota Medan.
+Gunakan gaya penulisan laporan intelijen formal: faktual, analitis, proporsional.Kembalikan HANYA JSON valid tanpa markdown, tanpa teks tambahan apapun.
 PROMPT;
 
         $userPrompt = $this->buatPrompt($folder->nama, $tanggal, $konten);
@@ -336,15 +338,37 @@ Kembalikan JSON dengan struktur PERSIS seperti berikut:
       "warna_dot": "#16a34a"
     }
   ],
-  "analisis_intelijen": {
-    "politik": "Analisis dimensi POLITIK — kebijakan, kekuasaan, stabilitas pemerintahan terkait kasus ini di Kota Medan. Minimal 3 kalimat substantif.",
-    "ekonomi": "Analisis dimensi EKONOMI — dampak finansial, investasi, perdagangan, ketenagakerjaan di Kota Medan. Minimal 3 kalimat substantif.",
-    "sosial": "Analisis dimensi SOSIAL — dampak terhadap masyarakat, kelompok rentan, keresahan sosial di Kota Medan. Minimal 3 kalimat substantif.",
-    "teknologi": "Analisis dimensi TEKNOLOGI — peran teknologi, digital, infrastruktur dalam kasus ini di Kota Medan. Minimal 3 kalimat substantif.",
-    "hukum": "Analisis dimensi HUKUM — potensi pelanggaran, regulasi terkait, risiko hukum di Kota Medan. Minimal 3 kalimat substantif.",
-    "lingkungan": "Analisis dimensi LINGKUNGAN — dampak terhadap lingkungan hidup, SDA, tata ruang di Kota Medan. Minimal 3 kalimat substantif.",
-    "budaya": "Analisis dimensi BUDAYA — dampak terhadap nilai, adat, identitas budaya lokal Medan. Minimal 3 kalimat substantif."
+ // BARU
+"analisis_intelijen": {
+  "politik": {
+    "judul": "I. Dimensi Politik",
+    "isi": "Paragraf naratif analisis politik minimal 4 kalimat — relevansi kebijakan, kekuasaan, stabilitas pemerintahan terhadap kasus ini di Kota Medan."
   },
+  "ekonomi": {
+    "judul": "II. Dimensi Ekonomi",
+    "isi": "Paragraf naratif analisis ekonomi minimal 4 kalimat — dampak finansial, investasi, perdagangan, ketenagakerjaan di Kota Medan."
+  },
+  "sosial": {
+    "judul": "III. Dimensi Sosial",
+    "isi": "Paragraf naratif analisis sosial minimal 4 kalimat — dampak terhadap masyarakat, kelompok rentan, kohesi sosial di Kota Medan."
+  },
+  "teknologi": {
+    "judul": "IV. Dimensi Teknologi",
+    "isi": "Paragraf naratif analisis teknologi minimal 4 kalimat — peran digital, infrastruktur, media siber dalam kasus ini di Kota Medan."
+  },
+  "hukum": {
+    "judul": "V. Dimensi Hukum",
+    "isi": "Paragraf naratif analisis hukum minimal 4 kalimat — potensi pelanggaran, regulasi terkait, risiko hukum di Kota Medan."
+  },
+  "lingkungan": {
+    "judul": "VI. Dimensi Lingkungan",
+    "isi": "Paragraf naratif analisis lingkungan minimal 4 kalimat — dampak terhadap lingkungan hidup, SDA, tata ruang di Kota Medan."
+  },
+  "budaya": {
+    "judul": "VII. Dimensi Budaya",
+    "isi": "Paragraf naratif analisis budaya minimal 4 kalimat — dampak terhadap nilai, adat, identitas budaya lokal Medan."
+  }
+}
   "analisis_dampak_lintas_daerah": {
     "status_indikasi": "ada_indikasi/belum_terdapat_indikasi/tidak_dapat_ditentukan",
     "ringkasan": "Ringkasan dampak lintas daerah terhadap Kota Medan.",
