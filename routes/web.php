@@ -60,4 +60,9 @@ Route::post('/datapool/{folder}/search/simpan', [GoogleSearchController::class, 
 
 Route::patch('/datapool/{folder}/analisis/{analisis}/update-info', [AnalisisController::class, 'updateInfo'])->name('analisis.update');
 
-
+Route::view('/penjabaran-strategis', 'penjabaran-strategis')->name('penjabaran-strategis');
+Route::view('/laporan-informasi', 'laporan-informasi')->name('laporan-informasi');
+Route::view('/laporan-intelijen', 'laporan-intelijen')->name('laporan-intelijen');
+Route::view('/infografis-intelijen', 'infografis-intelijen')->name('infografis-intelijen');
+Route::view('/profiling-subjek', 'profiling-subjek')->name('profiling-subjek');
+Route::view('/presentasi-intelijen', 'presentasi-intelijen')->name('presentasi-intelijen');
