@@ -9,3 +9,213 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+/* ══════════════════════════════════════════════════════
+   GEN PAGES — Layout 2 Card (Input + Output)
+   Tambahkan ke stylesheet utama SEPIA
+   ══════════════════════════════════════════════════════ */
+
+/* Layout wrapper 2 kolom */
+.gen-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .gen-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card generik */
+.gen-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Card output punya min-height agar tidak kempis */
+.gen-card-output {
+  min-height: 400px;
+}
+
+/* Header card */
+.gen-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+
+.gen-card-icon {
+  font-size: 1rem;
+}
+
+.gen-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Tombol salin di header output */
+.btn-copy {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Body card */
+.gen-card-body {
+  padding: 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Textarea lebih tinggi di gen pages */
+.gen-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Footer card (tempat tombol generate) */
+.gen-card-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Tombol generate */
+.btn-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  background: var(--accent, #1a5c2e);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btn-generate:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.btn-generate:active {
+  transform: translateY(0);
+}
+
+/* ── OUTPUT STATES ── */
+
+/* Placeholder (belum di-generate) */
+.output-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-muted);
+  gap: 0.75rem;
+  min-height: 280px;
+}
+
+.output-placeholder-icon {
+  font-size: 2.5rem;
+  opacity: 0.4;
+}
+
+.output-placeholder p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+/* Loading state */
+.output-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  min-height: 280px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent, #1a5c2e);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hasil output */
+.output-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.output-section {
+  border-left: 3px solid var(--accent, #1a5c2e);
+  padding-left: 1rem;
+}
+
+.output-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent, #1a5c2e);
+  margin-bottom: 0.5rem;
+}
+
+.output-section p {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.output-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.output-list li {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
