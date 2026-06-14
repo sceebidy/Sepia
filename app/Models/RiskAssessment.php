@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SwotItem extends Model
+class RiskAssessment extends Model
 {
-    protected $table = 'swot_items';
-    protected $fillable = ['analisis_id', 'tipe', 'isi', 'urutan'];
+    protected $table = 'risk_assessment';
+    protected $fillable = ['analisis_id', 'label', 'nilai', 'warna', 'keterangan', 'urutan'];
 
     public function analisis()
     {

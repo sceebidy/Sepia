@@ -53,7 +53,7 @@ class AnalisisController extends Controller
                 'tanggal_analisis' => now(),
                 'tingkat_risiko'   => 0,
                 'jumlah_sumber'    => $items->count(),
-                'model_versi'      => 'SEPIA v1.0 (' . env('OPENAI_MODEL', 'gpt-4o-mini') . ')',
+                'model_versi'      => 'SEPIA v1.0 (' . env('OPENAI_MODEL', 'gpt-4o') . ')',
             ]);
 
             $this->prosesDenganAI($folder, $items, $analisis);
@@ -139,7 +139,7 @@ PROMPT;
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
             'Content-Type'  => 'application/json',
         ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
-            'model'       => env('OPENAI_MODEL', 'gpt-4o-mini'),
+            'model'       => env('OPENAI_MODEL', 'gpt-4o'),
             'temperature' => 0.3,
             'max_tokens'  => 8000,
             'messages'    => [

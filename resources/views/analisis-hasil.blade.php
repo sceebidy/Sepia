@@ -384,21 +384,22 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
         <div class="sek-title">II. Analisis Intelijen</div>
         @php
           $pestleMeta = [
-            'politik'    => ['label' => 'Politik',    'icon' => '🏛️', 'color' => '#1e40af', 'bg' => '#eff6ff'],
-            'ekonomi'    => ['label' => 'Ekonomi',    'icon' => '💰', 'color' => '#166534', 'bg' => '#f0fdf4'],
-            'sosial'     => ['label' => 'Sosial',     'icon' => '👥', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
-            'teknologi'  => ['label' => 'Teknologi',  'icon' => '💻', 'color' => '#0369a1', 'bg' => '#f0f9ff'],
-            'hukum'      => ['label' => 'Hukum',      'icon' => '⚖️', 'color' => '#b45309', 'bg' => '#fffbeb'],
-            'lingkungan' => ['label' => 'Lingkungan', 'icon' => '🌿', 'color' => '#065f46', 'bg' => '#ecfdf5'],
-            'budaya'     => ['label' => 'Budaya',     'icon' => '🎭', 'color' => '#9d174d', 'bg' => '#fdf2f8'],
+            'politik'    => ['label' => 'Politik',    'icon' => '', 'color' => '#1e40af', 'bg' => '#eff6ff'],
+            'ekonomi'    => ['label' => 'Ekonomi',    'icon' => '', 'color' => '#166534', 'bg' => '#f0fdf4'],
+            'sosial'     => ['label' => 'Sosial',     'icon' => '', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
+            'teknologi'  => ['label' => 'Teknologi',  'icon' => '', 'color' => '#0369a1', 'bg' => '#f0f9ff'],
+            'hukum'      => ['label' => 'Hukum',      'icon' => '', 'color' => '#b45309', 'bg' => '#fffbeb'],
+            'lingkungan' => ['label' => 'Lingkungan', 'icon' => '', 'color' => '#065f46', 'bg' => '#ecfdf5'],
+            'budaya'     => ['label' => 'Budaya',     'icon' => '', 'color' => '#9d174d', 'bg' => '#fdf2f8'],
           ];
           $analisisRaw = $analisis->analisis_intelijen ?? null;
           $pestle = null;
           if ($analisisRaw) {
             $decoded = json_decode($analisisRaw, true);
             if (is_array($decoded) && isset($decoded['politik'])) {
-              $pestle = $decoded;
-            }
+  // Normalize: bisa string langsung atau object {judul, isi}
+  $pestle = array_map(fn($v) => is_array($v) ? ($v['isi'] ?? $v['narasi'] ?? '') : $v, $decoded);
+}
           }
         @endphp
 
@@ -410,8 +411,9 @@ body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text
               <span style="font-size:12pt">{{ $meta['icon'] }}</span>
               <span style="font-size:10.5pt;font-weight:bold;color:{{ $meta['color'] }};text-transform:uppercase;letter-spacing:0.05em">{{ $meta['label'] }}</span>
             </div>
-            <div style="padding:8px 12px;font-size:11pt;line-height:1.8;text-align:justify">{{ $pestle[$key] }}</div>
-          </div>
+<div style="padding:8px 12px;font-size:11pt;line-height:1.8;text-align:justify">
+  {{ is_array($pestle[$key]) ? ($pestle[$key]['isi'] ?? $pestle[$key]['narasi'] ?? json_encode($pestle[$key])) : $pestle[$key] }}
+</div>          </div>
           @endif
           @endforeach
         @elseif($analisisRaw)

@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SwotItem extends Model
+class TimelineKasus extends Model
 {
-    protected $table = 'swot_items';
-    protected $fillable = ['analisis_id', 'tipe', 'isi', 'urutan'];
+    protected $table = 'timeline_kasus';
+    protected $fillable = ['analisis_id', 'tanggal', 'keterangan', 'warna_dot', 'urutan'];
 
     public function analisis()
     {
